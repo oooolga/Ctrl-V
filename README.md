@@ -11,6 +11,8 @@
 <p align="left">
 <a href="https://arxiv.org/abs/2406.05630" alt="arXiv">
     <img src="https://img.shields.io/badge/arXiv-2406.05630-b31b1b.svg?style=flat" /></a>
+<a href="https://oooolga.github.io/ctrl-v.github.io/" alt="webpage">
+    <img src="https://img.shields.io/badge/Webpage-Ctrl_V-darkviolet" /></a>
 <a href="https://paperswithcode.com/paper/ctrl-v-higher-fidelity-video-generation-with">
     <img alt="Static Badge" src="https://img.shields.io/badge/paper_with_code-link-turquoise?logo=paperswithcode" />
 </a>
