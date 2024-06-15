@@ -2,7 +2,10 @@
 
 <p align="center">
 <a href="https://oooolga.github.io/ctrl-v.github.io/">
-<img src="./statics/logo.png" height="80" alt="logo">
+<picture>
+  <source srcset="./statics/logo_darkmode.png" height="80" media="(prefers-color-scheme: dark)">
+  <img src="./statics/logo.png" height="80">
+</picture>
 </a>
 </p>
 
@@ -17,7 +20,10 @@
     <img alt="Static Badge" src="https://img.shields.io/badge/paper_with_code-link-turquoise?logo=paperswithcode" />
 </a>
 <p align="center">
-<img src="./statics/CtrlV_teaserv2.png" height="480" alt="teaser">
+<picture>
+  <source srcset="./statics/CtrlV_teaser_darkmode.png" media="(prefers-color-scheme: dark)">
+  <img src="./statics/CtrlV_teaserv2.png">
+</picture>
 </p>
 
 # Quick Start
