@@ -1,11 +1,10 @@
 # nvidia-smi | grep 'python' | awk '{ print $5 }' | xargs -n1 kill -9
 
 timestamp=$(date +%y%m%d_%H%M%S)
-DATASET="bdd100k"
-# NAME="${DATASET}_ctrlv_${timestamp}"
-NAME="bdd100k_ctrlv_240511_200727"
-OUT_DIR="/network/scratch/x/xuolga/Results/sd3d/${NAME}"
-# OUT_DIR="${OUT_DIR}/kitti_ctrlv_240510_135723"
+DATASET="bdd100k" #"kitti/vkitti/bdd100k/..."
+DATASET_PATH="..."
+NAME="${DATASET}_ctrlv_${timestamp}"
+OUT_DIR=".../${NAME}"
 mkdir -p $OUT_DIR
 
 PROJECT_NAME='ctrl_v'
@@ -17,7 +16,7 @@ echo "Saved script to ${SAVE_SCRIPT_PATH}"
 
 CUDA_LAUNCH_BLOCKING=1 accelerate launch tools/train_video_controlnet.py \
     --run_name $NAME \
-    --data_root $SCRATCH/Datasets \
+    --data_root $DATASET_PATH \
     --project_name $PROJECT_NAME \
     --pretrained_model_name_or_path stabilityai/stable-video-diffusion-img2vid-xt \
     --output_dir $OUT_DIR \

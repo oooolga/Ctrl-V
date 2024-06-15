@@ -1,13 +1,13 @@
 # nvidia-smi | grep 'python' | awk '{ print $5 }' | xargs -n1 kill -9
 
 timestamp=$(date +%y%m%d_%H%M%S)
-DATASET="bdd100k"
-# NAME="${DATASET}_video_${timestamp}"
-NAME="bdd100k_video_240525_163350"
-OUT_DIR="/network/scratch/x/xuolga/Results/sd3d/${NAME}"
+DATASET="bdd100k" #"kitti/vkitti/bdd100k/..."
+DATASET_PATH="..."
+NAME="${DATASET}_baseline_${timestamp}"
+OUT_DIR=".../${NAME}"
 mkdir -p $OUT_DIR
 
-PROJECT_NAME='sd3d-video'
+PROJECT_NAME='ctrl_v'
 
 SCRIPT_PATH=$0
 SAVE_SCRIPT_PATH="${OUT_DIR}/train_scripts.sh"
@@ -16,7 +16,7 @@ echo "Saved script to ${SAVE_SCRIPT_PATH}"
 
 CUDA_LAUNCH_BLOCKING=1 accelerate launch tools/train_video_diffusion.py \
     --run_name $NAME \
-    --data_root /network/scratch/x/xuolga/Datasets \
+    --data_root $DATASET_PATH \
     --project_name $PROJECT_NAME \
     --pretrained_model_name_or_path stabilityai/stable-video-diffusion-img2vid-xt \
     --output_dir $OUT_DIR \
@@ -40,5 +40,5 @@ CUDA_LAUNCH_BLOCKING=1 accelerate launch tools/train_video_diffusion.py \
     --bbox_dropout_prob 0.1 \
     --num_demo_samples 15 \
     --backprop_temporal_blocks_start_iter -1 \
-    --num_train_epochs 5 \
-     --resume_from_checkpoint latest
+    --num_train_epochs 1 \
+    --resume_from_checkpoint latest

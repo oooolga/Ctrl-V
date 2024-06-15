@@ -1,19 +1,19 @@
 DATASET='vkitti'
-OUT_DIR="/network/scratch/x/xuolga/Results/sd3d/vkitti_ctrlv_240510_150856"
-#BBOX_MODEL_DIR="/network/scratch/x/xuolga/Results/sd3d/vkitti_box_predict_240530_010831"
-BBOX_MODEL_DIR="/network/scratch/x/xuolga/Results/sd3d/vkitti_box_predict_240611_114539"
+OUT_DIR="..."
+BBOX_MODEL_DIR="..."
+DATASET_PATH="..."
 
 PROJECT_NAME="ctrl_v"
 
 accelerate launch --config_file config/a100l.yaml tools/eval_overall.py \
-    --data_root /network/scratch/x/xuolga/Datasets \
+    --data_root $DATASET_PATH \
     --project_name $PROJECT_NAME \
     --pretrained_model_name_or_path $OUT_DIR \
     --output_dir $OUT_DIR \
     --variant fp16 \
     --dataset_name $DATASET \
     --report_to wandb \
-    --seed 1234 \
+    --seed 123 \
     --mixed_precision fp16 \
     --clip_length 25 \
     --min_guidance_scale 1.0 \

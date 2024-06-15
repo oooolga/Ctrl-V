@@ -1,17 +1,18 @@
-OUT_DIR="/network/scratch/x/xuolga/Results/sd3d/bdd100k_video_240525_163350"
-DATASET="bdd100k"
-PROJECT_NAME='sd3d-video'
+OUT_DIR="..."
+DATASET_PATH="..."
+DATASET="..."
+PROJECT_NAME='ctrl-v'
 
 accelerate launch --config_file config/rtx8000.yaml tools/eval_video_generation.py \
-    --run_name $DATASET-svd-final-eval \
-    --data_root /network/scratch/x/xuolga/Datasets \
+    --run_name $DATASET-baseline-final-eval \
+    --data_root $DATASET_PATH \
     --project_name $PROJECT_NAME \
     --pretrained_model_name_or_path $OUT_DIR \
     --output_dir $OUT_DIR \
     --variant fp16 \
     --dataset_name $DATASET \
     --report_to wandb \
-    --seed 4321 \
+    --seed 123 \
     --mixed_precision fp16 \
     --clip_length 25 \
     --min_guidance_scale 1.0 \

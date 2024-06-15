@@ -1,18 +1,19 @@
-DATASET='bdd100k'
-OUT_DIR="/network/scratch/x/xuolga/Results/sd3d/bdd100k_ctrlv_240511_200727"
+DATASET='...'
+OUT_DIR="..."
+DATASET_PATH="..."
 
 PROJECT_NAME='ctrl_v'
 
 accelerate launch --config_file config/a100l.yaml tools/eval_video_controlnet.py \
-    --run_name $DATASET-ctrlnet-final-eval \
-    --data_root /network/scratch/x/xuolga/Datasets \
+    --run_name $DATASET-box2video-tf-final-eval \
+    --data_root $DATASET_PATH \
     --project_name $PROJECT_NAME \
     --pretrained_model_name_or_path $OUT_DIR \
     --output_dir $OUT_DIR \
     --variant fp16 \
     --dataset_name $DATASET \
     --report_to wandb \
-    --seed 4321 \
+    --seed 123 \
     --mixed_precision fp16 \
     --clip_length 25 \
     --min_guidance_scale 1.0 \

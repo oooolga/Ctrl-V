@@ -1,11 +1,12 @@
 DATASET='bdd100k'
-OUT_DIR="/network/scratch/x/xuolga/Results/sd3d/bdd100k_ctrlv_240511_200727"
-BBOX_MODEL_DIR="/network/scratch/x/xuolga/Results/sd3d/bdd100k_segmentation_predict_240515_102502_backup"
+OUT_DIR="..."
+DATASET_PATH="..."
+BBOX_MODEL_DIR="..."
 
 PROJECT_NAME="ctrl_v"
 
 accelerate launch --config_file config/a100l.yaml tools/eval_overall.py \
-    --data_root /network/scratch/x/xuolga/Datasets \
+    --data_root $DATASET_PATH \
     --project_name $PROJECT_NAME \
     --pretrained_model_name_or_path $OUT_DIR \
     --output_dir $OUT_DIR \
