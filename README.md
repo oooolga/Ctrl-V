@@ -1,4 +1,4 @@
-# This page is currently under construction
+### This page is currently under construction
 
 <p align="center">
 <a href="https://oooolga.github.io/ctrl-v.github.io/">
@@ -31,7 +31,7 @@ cd Ctrl-V
 python setup.py develop
 ```
 
-# Datasets
+# Data Directory
 In the training and evaluation script, set the `DATASET_PATH` to the root of the dataset folder. Within this folder, you will find the extracted dataset subfolders. The dataset root folder should be organized in the following format: 	
 ```
 Datasets/
@@ -39,3 +39,35 @@ Datasets/
 ├── kitti
 └── vkitti_2.0.3
 ```
+
+# Train a Bounding-box Predictor
+A demo script is available at [demo_train_bbox_predict.sh](./scripts/train_scripts/demo_train_bbox_predict.sh).
+
+To run [demo_train_bbox_predict.sh](./scripts/train_scripts/demo_train_bbox_predict.sh), set the `$DATASET_PATH` and `$OUT_DIR` to your desired path, and then execute 
+```
+bash ./scripts/train_scripts/demo_train_bbox_predict.sh
+```
+
+To resume training, set the `$NAME` variable to the name of the stopped experiment (e.g., `bdd100k_bbox_predict_240616_000000`). Ensure that you include `--resume_from_checkpoint latest` and that all the hyperparameter settings match those of the stopped experiment. After this setup, you can resume training by running the following command:
+```
+bash ./scripts/train_scripts/demo_train_bbox_predict.sh
+```
+
+To train on different sets, simply modify `DATASET` variable's value to `kitti`, `vkitti` or `bdd100k`. You can adjust the number of input frame conditions for your bounding-box predictor by changing the value of `num_cond_bbox_frames`. To change the last condition bounding-box frame to its trajectory frame, enable `if_last_frame_trajectory`.
+
+# Train a Box2Video Model
+A demo script is available at [demo_train_video_box2video.sh](./scripts/train_scripts/demo_train_video_box2video.sh).
+
+To run [demo_train_video_box2video.sh](./scripts/train_scripts/demo_train_video_box2video.sh), set the `$DATASET_PATH` and `$OUT_DIR` to your desired path, and then execute 
+```
+bash ./scripts/train_scripts/demo_train_video_box2video.sh
+```
+
+To resume training, set the `$NAME` variable to the name of the stopped experiment (e.g., `bdd100k_ctrlv_240616_000000`). Ensure that you include `--resume_from_checkpoint latest` and that all the hyperparameter settings match those of the stopped experiment. After this setup, you can resume training by running the following command:
+```
+bash ./scripts/train_scripts/demo_train_video_box2video.sh
+```
+
+To train on different sets, simply modify `DATASET` variable's value to `kitti`, `vkitti` or `bdd100k`.
+
+# Evaluate
