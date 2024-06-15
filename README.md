@@ -68,7 +68,7 @@ To train on different sets, simply modify `DATASET` variable's value to `kitti`,
 
 # Credits
 
-Our library is built on the work of many brilliant researchers and developers. We're grateful for their contributions, which have helped us create a better API. We want to thank the following projects for their significant contributions:
+Our library is built on the work of many brilliant researchers and developers. We're grateful for their contributions, which have helped us with this project. We want to thank the following projects for their significant contributions:
 
 
 - @huggingface's [diffusion model library](https://github.com/huggingface/diffusers/).
