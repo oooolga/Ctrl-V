@@ -2,13 +2,15 @@ DATASET='bdd100k'
 OUT_DIR="..."
 DATASET_PATH="..."
 BBOX_MODEL_DIR="..."
+BOX2VIDEO_DIR="..."
 
+mkdir -p $OUT_DIR
 PROJECT_NAME="ctrl_v"
 
 accelerate launch --config_file config/a100l.yaml tools/eval_overall.py \
     --data_root $DATASET_PATH \
     --project_name $PROJECT_NAME \
-    --pretrained_model_name_or_path $OUT_DIR \
+    --pretrained_model_name_or_path $BOX2VIDEO_DIR \
     --output_dir $OUT_DIR \
     --variant fp16 \
     --dataset_name $DATASET \

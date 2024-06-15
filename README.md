@@ -66,11 +66,32 @@ To resume training, set the `$NAME` variable to the name of the stopped experime
 
 To train on different sets, simply modify `DATASET` variable's value to `kitti`, `vkitti` or `bdd100k`.
 
-# Evaluate
+# Generate and Evaluate Videos
+
+## Running the whole generation pipeline (bounding-box predictor+box2video)
+Demo scripts are available at [eval_scripts](./scripts/eval_scripts/).
+
+To generate videos using the entire generation pipeline (predict bounding boxes and generate videos based on the predicted bounding box sequences), set the following variables in the `demo_eval_overall_{}.sh` scripts: `$DATASET_PATH`, `$OUT_DIR`, `$BOX2VIDEO_DIR`, and `$BBOX_MODEL_DIR`, and then execute 
+```
+bash ./scripts/eval_exripts/demo_eval_overall_{}.sh
+```
+For each input sample, the pipeline will predict five bounding-box sequences and select the one with the highest mask-IoU score to generate the final video. We evaluate bounding-box prediction metrics during the generation process, and the results are uploaded to the W&B dashboard.
+
+The generated videos are also uploaded to the W&B dashboard. You can find a local copy of the generated videos in your W&B folder at `$OUT_DIR/wandb/run-{run_id}/files/media/videos`.
+
+## Running the teacher-forced Box2Video generation pipeline
+TODO
+
+## Evaluations
+### FVD, LPIPS, SSIM and PSNR
+TODO
+
+### YOLOv8 Detector and mAP Scores
+TODO
 
 # Credits
 
-Our library is built on the work of many brilliant researchers and developers. We're grateful for their contributions, which have helped us with this project. We want to thank the following projects for their significant contributions:
+Our library is built on the work of many brilliant researchers and developers. We're grateful for their contributions, which have helped us with this project. Special thanks to the following repositories for providing valuable tools that have enhanced our project:
 
 
 - @huggingface's [diffusion model library](https://github.com/huggingface/diffusers/).
@@ -85,4 +106,5 @@ Our library is built on the work of many brilliant researchers and developers. W
       year={2024},
       eprint={2406.05630},
       archivePrefix={arXiv}
+}
 ```
