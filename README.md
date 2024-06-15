@@ -48,10 +48,7 @@ To run [demo_train_bbox_predict.sh](./scripts/train_scripts/demo_train_bbox_pred
 bash ./scripts/train_scripts/demo_train_bbox_predict.sh
 ```
 
-To resume training, set the `$NAME` variable to the name of the stopped experiment (e.g., `bdd100k_bbox_predict_240616_000000`). Ensure that you include `--resume_from_checkpoint latest` and that all the hyperparameter settings match those of the stopped experiment. After this setup, you can resume training by running the following command:
-```
-bash ./scripts/train_scripts/demo_train_bbox_predict.sh
-```
+To resume training, set the `$NAME` variable to the name of the stopped experiment (e.g., `bdd100k_bbox_predict_240616_000000`). Ensure that you include `--resume_from_checkpoint latest` and that all the hyperparameter settings match those of the stopped experiment. After this setup, you can resume training by re-executing the training command.
 
 To train on different sets, simply modify `DATASET` variable's value to `kitti`, `vkitti` or `bdd100k`. You can adjust the number of input frame conditions for your bounding-box predictor by changing the value of `num_cond_bbox_frames`. To change the last condition bounding-box frame to its trajectory frame, enable `if_last_frame_trajectory`.
 
@@ -63,11 +60,27 @@ To run [demo_train_video_box2video.sh](./scripts/train_scripts/demo_train_video_
 bash ./scripts/train_scripts/demo_train_video_box2video.sh
 ```
 
-To resume training, set the `$NAME` variable to the name of the stopped experiment (e.g., `bdd100k_ctrlv_240616_000000`). Ensure that you include `--resume_from_checkpoint latest` and that all the hyperparameter settings match those of the stopped experiment. After this setup, you can resume training by running the following command:
-```
-bash ./scripts/train_scripts/demo_train_video_box2video.sh
-```
+To resume training, set the `$NAME` variable to the name of the stopped experiment (e.g., `bdd100k_ctrlv_240616_000000`). Ensure that you include `--resume_from_checkpoint latest` and that all the hyperparameter settings match those of the stopped experiment. After this setup, you can resume training by re-executing the training command.
 
 To train on different sets, simply modify `DATASET` variable's value to `kitti`, `vkitti` or `bdd100k`.
 
 # Evaluate
+
+# Credits
+
+Our library is built on the work of many brilliant researchers and developers. We're grateful for their contributions, which have helped us create a better API. We want to thank the following projects for their significant contributions:
+
+
+- @huggingface's [diffusion model library](https://github.com/huggingface/diffusers/).
+- @ultralytics's [yolov8 library](https://github.com/ultralytics/ultralytics).
+
+# Citation
+
+```bibtex
+@misc{luo2024ctrlv,
+      title={Ctrl-V: Higher Fidelity Video Generation with Bounding-Box Controlled Object Motion}, 
+      author={Ge Ya Luo and Zhi Hao Luo and Anthony Gosselin and Alexia Jolicoeur-Martineau and Christopher Pal},
+      year={2024},
+      eprint={2406.05630},
+      archivePrefix={arXiv}
+```
