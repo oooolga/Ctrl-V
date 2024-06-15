@@ -1,10 +1,14 @@
 # This page is currently under construction
 
-<div align="center">
-<img src="assets/logo.png" alt="ctrl-v" width="20%">
-</div>
+<p align="center">
+<img src="./assets/logo.png" height="80" alt="logo">
+</p>
 
 # Ctrl-V: Higher Fidelity Video Generation with Bounding-Box Controlled Object Motion
+
+<p align="center">
+<img src="./assets/CtrlV_teaserv2.png" height="480" alt="teaser">
+</p>
 
 ## Getting Started
 
