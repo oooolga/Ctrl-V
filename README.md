@@ -2,10 +2,11 @@
 
 <p align="center">
 <a href="https://oooolga.github.io/ctrl-v.github.io/">
-<picture>
-  <source srcset="./statics/logo_darkmode.png" height="80" media="(prefers-color-scheme: dark)">
-  <img src="./statics/logo.png" height="80">
-</picture>
+    <picture>
+        <source media="(prefers-color-scheme: dark)" srcset="./statics/logo_darkmode.png" height="80">
+        <source media="(prefers-color-scheme: light)" srcset="./statics/logo.png" height="80">
+        <img src="./statics/logo.png#gh-light-mode-only" height="80">
+    </picture>
 </a>
 </p>
 
