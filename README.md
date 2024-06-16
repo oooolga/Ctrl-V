@@ -21,6 +21,7 @@
 <a href="https://paperswithcode.com/paper/ctrl-v-higher-fidelity-video-generation-with">
     <img alt="Static Badge" src="https://img.shields.io/badge/paper_with_code-link-turquoise?logo=paperswithcode" />
 </a>
+<img src="https://views.whatilearened.today/views/github/oooolga/Ctrl-V.svg" />
 <p align="center">
 <picture>
   <source srcset="./statics/CtrlV_teaserv2.png" media="(prefers-color-scheme: light)">

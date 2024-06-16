@@ -250,6 +250,8 @@ def plot_rp(rp_pairs, ax):
 
 if __name__ == '__main__':
     vid_dir = sys.argv[1] # make sure to pass the path to the video directory as absolute path
+    if vid_dir[-1] != "/":
+        vid_dir += "/"
     dataset = sys.argv[2]
 
     detection_path = f"/{os.path.join(*vid_dir.split('/')[:-6])}/plots/detections.pickle"
@@ -261,4 +263,5 @@ if __name__ == '__main__':
         data = pickle.load(handle)
     
     mean_ap, all_aps = get_map(data,plot=True,dataset=dataset)
-    import pdb; pdb.set_trace()
+    print(f"Mean AP: {mean_ap}")
+    print(f"APs: {all_aps}")
