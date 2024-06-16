@@ -5,7 +5,7 @@
     <picture>
         <source media="(prefers-color-scheme: dark)" srcset="./statics/logo_darkmode.png" height="80">
         <source media="(prefers-color-scheme: light)" srcset="./statics/logo.png" height="80">
-        <img src="./statics/logo.png#gh-light-mode-only" height="80">
+        <img alt="logo" src="./statics/logo.png" height="80">
     </picture>
 </a>
 </p>
@@ -22,6 +22,7 @@
 </a>
 <p align="center">
 <picture>
+  <source srcset="./statics/CtrlV_teaserv2.png" media="(prefers-color-scheme: light)">
   <source srcset="./statics/CtrlV_teaser_darkmode.png" media="(prefers-color-scheme: dark)">
   <img src="./statics/CtrlV_teaserv2.png">
 </picture>
