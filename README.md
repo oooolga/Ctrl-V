@@ -20,6 +20,8 @@
 <img src="https://img.shields.io/github/license/oooolga/Ctrl-V" />
 <a href="https://paperswithcode.com/paper/ctrl-v-higher-fidelity-video-generation-with">
     <img alt="Static Badge" src="https://img.shields.io/badge/paper_with_code-link-turquoise?logo=paperswithcode" /></a>
+<a href="https://youtu.be/_bhloCA8vdo" alt="youtube">
+    <img src="https://img.shields.io/badge/YouTube-video-FF0000?logo=youtube&logoColor=FF0000" /></a>
 <img src="https://views.whatilearened.today/views/github/oooolga/Ctrl-V.svg" />
 <p align="center">
 <picture>
