@@ -187,11 +187,9 @@ def main():
                                                     batch_size=args.train_batch_size, num_workers=args.dataloader_num_workers, 
                                                     data_type='clip', use_default_collate=True, tokenizer=None, shuffle=True,
                                                     if_return_bbox_im=True, train_H=args.train_H, train_W=args.train_W,
+                                                    use_preplotted_bbox=True,
                                                     use_segmentation=args.use_segmentation)
-        # _, test_loader = get_dataloader(args.dataset_name, if_train=True, 
-        #                                 batch_size=1, num_workers=args.dataloader_num_workers, 
-        #                                 data_type='clip', use_default_collate=True, tokenizer=None, shuffle=True)
-        # Scheduler and math around the number of training steps.
+
         overrode_max_train_steps = False
         num_update_steps_per_epoch = math.ceil(len(train_loader) / args.gradient_accumulation_steps)
         if args.max_train_steps is None:

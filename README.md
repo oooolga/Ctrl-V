@@ -52,7 +52,12 @@ Datasets/
 ```
 
 # Preprocessing
-TODO
+We have provided a script to render bounding-box frames and save them to your data directory, which can save time during training. However, this step is optional. You can also choose to render the bounding boxes on the fly by setting the `use_preplotted_bbox` parameter to `False` in the `get_dataloader` call.
+
+To render the bounding-box frames before training, run the following commands
+```
+python tools/preprocessing/preprocess_dataset.py $DATASET_PATH
+```
 
 # Train a Bounding-box Predictor
 A demo script is available at [demo_train_bbox_predict.sh](./scripts/train_scripts/demo_train_bbox_predict.sh).

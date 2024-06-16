@@ -8,9 +8,10 @@ import numpy as np
 import os
 from functools import partial
 from pathlib import Path
+import sys
 
 # # replace the root to the directory where your dataset folders are located
-root = "./datasets/" # <- set root to the directory where your dataset folders are located
+root = sys.argv[1] # <- set root to the directory where your dataset folders are located
 
 # download bdd100k dataset from https://www.vis.xyz/bdd100k/ and extract it to the root directory
 print('Start preprocessing bdd100k dataset.')
