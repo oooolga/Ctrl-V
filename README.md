@@ -19,8 +19,7 @@
     <img src="https://img.shields.io/badge/Webpage-Ctrl_V-darkviolet" /></a>
 <img src="https://img.shields.io/github/license/oooolga/Ctrl-V" />
 <a href="https://paperswithcode.com/paper/ctrl-v-higher-fidelity-video-generation-with">
-    <img alt="Static Badge" src="https://img.shields.io/badge/paper_with_code-link-turquoise?logo=paperswithcode" />
-</a>
+    <img alt="Static Badge" src="https://img.shields.io/badge/paper_with_code-link-turquoise?logo=paperswithcode" /></a>
 <img src="https://views.whatilearened.today/views/github/oooolga/Ctrl-V.svg" />
 <p align="center">
 <picture>
@@ -114,7 +113,15 @@ The generated videos are also uploaded to the W&B dashboard. You can find a loca
 TODO
 
 ### YOLOv8 Detector and mAP Scores
-TODO
+To compute the mAP and AP scores, run the following command
+```
+DATASET_NAME="..." #kitti/vkitti/bdd100k
+ABSOLUTE_PATH_TO_WANDB_DIR="/..."
+RUN_ID="..."
+
+python tools/run_tracking_metrics.py $ABSOLUTE_PATH_TO_WANDB_DIR/wandb/$RUN_ID/files/media/videos $DATASET_NAME
+```
+This code would automatic save the YOLOv8 detection results to `$ABSOLUTE_PATH_TO_WANDB_DIR`.
 
 # Credits
 
