@@ -51,6 +51,9 @@ Datasets/
 └── vkitti_2.0.3
 ```
 
+# Preprocessing
+TODO
+
 # Train a Bounding-box Predictor
 A demo script is available at [demo_train_bbox_predict.sh](./scripts/train_scripts/demo_train_bbox_predict.sh).
 
@@ -77,7 +80,8 @@ To train on different sets, simply modify `DATASET` variable's value to `kitti`,
 
 # Generate and Evaluate Videos
 
-## Running the whole generation pipeline (bounding-box predictor+box2video)
+## Generate Videos
+### Running the whole generation pipeline (bounding-box predictor+box2video)
 Demo scripts are available at [eval_scripts](./scripts/eval_scripts/).
 
 To generate videos using the entire generation pipeline (predict bounding boxes and generate videos based on the predicted bounding box sequences), set the following variables in the `demo_eval_overall_{}.sh` scripts: `$DATASET_PATH`, `$OUT_DIR`, `$BOX2VIDEO_DIR`, and `$BBOX_MODEL_DIR`, and then execute 
@@ -86,10 +90,18 @@ bash ./scripts/eval_exripts/demo_eval_overall_{}.sh
 ```
 For each input sample, the pipeline will predict five bounding-box sequences and select the one with the highest mask-IoU score to generate the final video. We evaluate bounding-box prediction metrics during the generation process, and the results are uploaded to the W&B dashboard.
 
-The generated videos are also uploaded to the W&B dashboard. You can find a local copy of the generated videos in your W&B folder at `$OUT_DIR/wandb/run-{run_id}/files/media/videos`.
+The generated videos are also uploaded to the W&B dashboard. You can find a local copy of the generated videos in your W&B folder at `$OUT_DIR/wandb/run-{run_id}/files/media`.
 
-## Running the teacher-forced Box2Video generation pipeline
-TODO
+### Running the teacher-forced Box2Video generation pipeline
+A demo script is available at [demo_eval_box2video_tf.sh](./scripts/eval_scripts/demo_eval_box2video_tf.sh).
+
+To generate videos using the ground-truth bounding boxes, set the `$DATASET_PATH` and `$OUT_DIR` variables in the script (`$OUT_DIR` should be the same location you used when training the `Box2Video` model), and then execute the following command:
+```
+bash ./scripts/eval_scripts/demo_eval_box2video_tf.sh
+```
+
+The generated videos are also uploaded to the W&B dashboard. You can find a local copy of the generated videos in your W&B folder at `$OUT_DIR/wandb/run-{run_id}/files/media`.
+
 
 ## Evaluations
 ### FVD, LPIPS, SSIM and PSNR
