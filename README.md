@@ -1,5 +1,3 @@
-### This page is currently under construction
-
 <p align="center">
 <a href="https://oooolga.github.io/ctrl-v.github.io/">
     <picture>

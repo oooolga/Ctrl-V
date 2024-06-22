@@ -5,7 +5,7 @@ from diffusers.utils import BaseOutput, logging, replace_example_docstring
 from diffusers.utils.torch_utils import is_compiled_module, randn_tensor
 from typing import Callable, Dict, List, Tuple, Optional, Union
 import PIL.Image
-from sd3d.utils import get_fourier_embeds_from_boundingbox
+from ctrlv.utils import get_fourier_embeds_from_boundingbox
 from diffusers.pipelines.stable_video_diffusion.pipeline_stable_video_diffusion import (
     tensor2vid,
     StableVideoDiffusionPipelineOutput,

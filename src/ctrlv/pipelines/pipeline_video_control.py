@@ -14,7 +14,7 @@ from diffusers.pipelines.pipeline_utils import DiffusionPipeline
 from diffusers.utils import logging, replace_example_docstring
 from diffusers.utils.torch_utils import randn_tensor
 
-from sd3d.models import UNetSpatioTemporalConditionModel, ControlNetModel
+from ctrlv.models import UNetSpatioTemporalConditionModel, ControlNetModel
 from diffusers.models import AutoencoderKLTemporalDecoder
 from transformers import CLIPImageProcessor, CLIPVisionModelWithProjection
 from diffusers import EulerDiscreteScheduler

@@ -5,7 +5,7 @@ def parse_args():
     parser.add_argument(
         "--project_name",
         type=str,
-        default="sd3d",
+        default="ctrlv",
         help="Name of the project."
     )
     parser.add_argument(

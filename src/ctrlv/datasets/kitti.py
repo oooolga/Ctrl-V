@@ -168,7 +168,7 @@ if __name__ == '__main__':
     print(len(dataset))
     print(dataset.__getitem__(0))
 
-    from sd3d.datasets import kitti_collate_fn
+    from ctrlv.datasets import kitti_collate_fn
     collate_fn = kitti_collate_fn
 
     dataloader = torch.utils.data.DataLoader(dataset, batch_size=5, shuffle=True, collate_fn=collate_fn)

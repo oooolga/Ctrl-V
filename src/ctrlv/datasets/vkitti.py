@@ -212,7 +212,7 @@ if __name__ == "__main__":
     vkitti2 = VKittiDataset(train=True)
     print(vkitti2.__getitem__(0, return_prompt=True))
 
-    from sd3d.datasets import kitti_collate_fn
+    from ctrlv.datasets import kitti_collate_fn
     collate_fn = kitti_collate_fn
 
     dataloader = torch.utils.data.DataLoader(vkitti2, batch_size=5, shuffle=True, collate_fn=collate_fn)
