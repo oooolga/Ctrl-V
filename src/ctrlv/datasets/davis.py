@@ -25,7 +25,8 @@ class DAVISDataset(KittiAbstract):
                  if_return_calib=False,
                  if_return_bbox_im=False,
                  H=None, W=None,
-                 train_H=None, train_W=None):
+                 train_H=None, train_W=None,
+                 use_preplotted_bbox=True):
 
         super(DAVISDataset, self).__init__(root=root,
                                     train=train,
