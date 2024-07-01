@@ -9,10 +9,9 @@ opencv_python==4.9.0.80
 packaging==24.1
 pandas==2.0.3
 peft==0.10.0
-Pillow==10.3.0
+Pillow==10.4.0
 Requests==2.32.3
-scipy==1.13.1
-sd3d.egg==info
+scipy==1.14.0
 setuptools==69.5.1
 skimage==0.0
 torch==2.2.2+cu121
@@ -20,5 +19,5 @@ torchvision==0.17.2+cu121
 tqdm==4.66.4
 transformers==4.36.2
 ultralytics==8.2.27
-wandb==0.17.1
+wandb==0.17.3
 xformers==0.0.26.post1

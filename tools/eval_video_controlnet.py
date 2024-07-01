@@ -20,8 +20,8 @@ from accelerate.utils import ProjectConfiguration, set_seed
 
 with warnings.catch_warnings():
     warnings.simplefilter("ignore")
-    from sd3d.utils import parse_args, get_dataloader, eval_samples_generator, get_n_training_samples, wandb_frames_with_bbox, export_to_video
-    from sd3d.pipelines import StableVideoControlPipeline
+    from ctrlv.utils import parse_args, get_dataloader, eval_samples_generator, get_n_training_samples, wandb_frames_with_bbox, export_to_video
+    from ctrlv.pipelines import StableVideoControlPipeline
 
 if not is_wandb_available():
     warnings.warn("Make sure to install wandb if you want to use it for logging during training.")
@@ -109,7 +109,7 @@ def main():
             with torch.autocast(
                 str(accelerator.device).replace(":0", ""), enabled=accelerator.mixed_precision == "fp16"
             ):
-                from sd3d.models import UNetSpatioTemporalConditionModel, ControlNetModel
+                from ctrlv.models import UNetSpatioTemporalConditionModel, ControlNetModel
                 ctrlnet = ControlNetModel.from_pretrained(args.pretrained_model_name_or_path, subfolder="controlnet")
                 unet = UNetSpatioTemporalConditionModel.from_pretrained(args.pretrained_model_name_or_path, subfolder="unet")
                 pipeline = StableVideoControlPipeline.from_pretrained("stabilityai/stable-video-diffusion-img2vid-xt",

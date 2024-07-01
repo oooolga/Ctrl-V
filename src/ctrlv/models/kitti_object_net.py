@@ -1,4 +1,4 @@
-from sd3d.utils import FourierEmbedder
+from ctrlv.utils import FourierEmbedder
 import torch.nn as nn
 import torch
 from diffusers import ModelMixin
