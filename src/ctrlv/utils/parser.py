@@ -5,7 +5,7 @@ def parse_args():
     parser.add_argument(
         "--project_name",
         type=str,
-        default="ctrlv",
+        default="sd3d",
         help="Name of the project."
     )
     parser.add_argument(
@@ -415,6 +415,8 @@ def parse_args():
     if args.fps is None:
         if args.dataset_name == "bdd100k":
             args.fps = 5
+        elif args.dataset_name == "nuscenes":
+            args.fps = 2
         else:
             args.fps = 7
     return args

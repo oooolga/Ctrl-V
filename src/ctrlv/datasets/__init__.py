@@ -3,6 +3,7 @@ from .vkitti import VKittiDataset
 from .mkitti import MergedKittiDataset
 from .bdd100k import BDD100KDataset
 from .davis import DAVISDataset
+from .nuscenes_ import NuScenesDataset
 
 MAX_BOXES_PER_DATA =30
 
@@ -164,5 +165,6 @@ COCO_LABELS_LOOKUP = {
 }
 
 __all__ = ['KittiDataset', 'VKittiDataset', 'MergedKittiDataset', 'BDD100KDataset', 'DAVISDataset',
+           'NuScenesDataset',
            'kitti_collate_fn', 'kitti_clip_collate_fn', 'kitti_clip_with_bbox_collate_fn', 'init_objects',
            'MAX_BOXES_PER_DATA', 'COCO_LABELS_LOOKUP']
