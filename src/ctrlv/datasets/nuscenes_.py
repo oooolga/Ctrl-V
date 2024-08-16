@@ -1,7 +1,5 @@
 from nuscenes.nuscenes import NuScenes
-from nuscenes.map_expansion.map_api import NuScenesMap
 from nuscenes.utils.geometry_utils import box_in_image, view_points
-from nuscenes.utils.data_classes import Box
 
 import numpy as np
 from pyquaternion import Quaternion
@@ -68,13 +66,6 @@ def render_box_3d_style(box, axis, view: np.ndarray = np.eye(3), normalize: bool
             # Draw front (first 4 corners) and rear (last 4 corners) rectangles(3d)/lines(2d)
             draw_rect(corners.T[:4], outline_color)
             draw_rect(corners.T[4:], outline_color)
-
-            # Draw line indicating the front
-            # center_bottom_forward = np.mean(corners.T[2:4], axis=0)
-            # center_bottom = np.mean(corners.T[[2, 3, 7, 6]], axis=0)
-            # axis.plot([center_bottom[0], center_bottom_forward[0]],
-            #           [center_bottom[1], center_bottom_forward[1]],
-            #           color=colors[0], linewidth=linewidth)
             
             # Draw x mark at the back of the object
             axis.plot([corners.T[4][0], corners.T[6][0], corners.T[5][0], corners.T[7][0]],
@@ -226,22 +217,22 @@ class NuScenesDataset(KittiAbstract):
         for scene_i, scene in enumerate(self.nusc.scene):
             
             self.scene_sample_dict[scene['name']]['scene'] = scene_i
-            self.scene_sample_dict[scene['name']]['samples'] = []
+            self.scene_sample_dict[scene['name']['frontcam_samples']] = []  # NOTE: Currently only using front camera data
+            
+            curr_data_token = self.nusc.get('sample_data', scene['first_sample_token'])['data']["CAM_FRONT"]
 
-            curr_token = scene['first_sample_token']
-
-            while curr_token:
-                curr_sample = self.nusc.get('sample', curr_token)
-                self.scene_sample_dict[scene['name']]['samples'].append(curr_token)
-                curr_token = curr_sample['next']
+            while curr_data_token:
+                curr_sample_data = self.nusc.get('sample_data', curr_data_token)
+                self.scene_sample_dict[scene['name']]['frontcam_samples'].append(curr_data_token)
+                curr_data_token = curr_sample_data['next']
             
             if self.data_type == 'image':
-                for i in range(len(self.scene_sample_dict[scene['name']]['samples'])):
-                    self.idx_sample_dict.append(self.scene_sample_dict[scene['name']]['samples'][i])
+                for i in range(len(self.scene_sample_dict[scene['name']]['frontcam_samples'])):
+                    self.idx_sample_dict.append(self.scene_sample_dict[scene['name']]['frontcam_samples'][i])
             
             elif self.data_type == 'clip':
-                for i in range(len(self.scene_sample_dict[scene['name']]['samples'])-self.clip_length+1):
-                    self.idx_sample_dict.append(self.scene_sample_dict[scene['name']]['samples'][i])
+                for i in range(len(self.scene_sample_dict[scene['name']]['frontcam_samples'])-self.clip_length+1):
+                    self.idx_sample_dict.append(self.scene_sample_dict[scene['name']]['frontcam_samples'][i])
         
     def __len__(self):
         return len(self.idx_sample_dict)
@@ -249,8 +240,8 @@ class NuScenesDataset(KittiAbstract):
     def _getimageitem(self, index, token=None, return_prompt=False, return_calib=False, return_index=False, return_bbox_im=False):
         if token is None:
             token = self.idx_sample_dict[index]
-        sample = self.nusc.get('sample', token)
-        data = self.nusc.get('sample_data', sample['data']["CAM_FRONT"])
+
+        data = self.nusc.get('sample_data', token)
         image_path = os.path.join(self.root, self.version, data['filename'])
         image = Image.open(image_path)
 
@@ -275,34 +266,14 @@ class NuScenesDataset(KittiAbstract):
             fig_path = os.path.join(self.bbox_dir, f'{token}.png') if self.bbox_dir is not None else 'temp.png'
 
             if self.bbox_dir is None or not os.path.exists(fig_path):
-                sample = self.nusc.get('sample', token)
-                bboxes = []
-                cam_front_data = self.nusc.get('sample_data', sample['data']["CAM_FRONT"])
-                front_camera_sensor = self.nusc.get('calibrated_sensor', cam_front_data['calibrated_sensor_token'])
-                ego_pose = self.nusc.get('ego_pose', cam_front_data['ego_pose_token'])
+                bboxes = self.nusc.get_boxes(token)
 
-                bbox_im = np.zeros((self.orig_W, self.orig_H, 3), dtype=np.uint8)
-                
-                for ann_token in sample['anns']:
-                    annotation_data = self.nusc.get('sample_annotation', ann_token)
-                    bbox_3d = self.nusc.get_box(ann_token)
-
-                    if int(annotation_data['visibility_token']) < 2:
-                        continue
-
-                    if bbox_3d.name not in NuScenesDataset.NUSC_CLASS_TO_GROUP_IDS:
-                        continue
-                    bboxes.append(bbox_3d)
-                    # if self.if_3d:
-                    #     bboxes.append(bbox_3d)
-                    # else:
-                    #     yaw, pitch, roll = bbox_3d.orientation.yaw_pitch_roll
-                    #     annotation_data = self.nusc.get('sample_annotation', ann_token)
-                    #     bbox_2d = {'center': [bbox_3d.center[0], bbox_3d.center[1]], 'size': [bbox_3d.wlh[0], bbox_3d.wlh[1]], 'heading': yaw, 'category': bbox_3d.name, 'instance_token': annotation_data['instance_token']}
-                    #     bboxes.append(bbox_2d)
+                sample_data = self.nusc.get('sample_data', token)
+                ego_pose = nusc.get('ego_pose', sample_data['ego_pose_token'])
+                front_camera_sensor = self.nusc.get('calibrated_sensor', sample_data['calibrated_sensor_token'])
 
                 fig, ax = plt.subplots()
-
+                bbox_im = np.zeros((self.orig_W, self.orig_H, 3), dtype=np.uint8)
                 my_render_3d_style(ax, self.nusc, bboxes, front_camera_sensor, ego_pose, None, background=True, show_2d_bboxes=True, show_3d_bboxes=self.if_3d)
                 ax.axis('off')
                 plt.margins(x=0, y=0)
@@ -332,7 +303,7 @@ class NuScenesDataset(KittiAbstract):
         self.disable_all_settings()
         traj = None
         for i in range(self.clip_length):
-            curr_sample = self.nusc.get('sample', curr_token)
+            curr_sample_data = self.nusc.get('sample_data', curr_token)
 
             if not (if_return_bbox_im_cp or return_bbox_im):
                 image, target = self._getimageitem(index, token=curr_token, return_prompt=False, return_calib=False, return_index=False, return_bbox_im=False)
@@ -343,7 +314,7 @@ class NuScenesDataset(KittiAbstract):
             images.append(image)
             targets.append(target)
 
-            curr_token = curr_sample['next']
+            curr_token = curr_sample_data['next']
         
         self.revert_setting()
         self.set_if_return_bbox_im(if_return_bbox_im_cp)
@@ -363,29 +334,25 @@ class NuScenesDataset(KittiAbstract):
         return ret
     
     def _parse_label(self, token):
-        sample = self.nusc.get('sample', token)
-        cam_front_data = self.nusc.get('sample_data', sample['data']["CAM_FRONT"])
+        cam_front_data = self.nusc.get('sample_data', token)
         front_camera_sensor = self.nusc.get('calibrated_sensor', cam_front_data['calibrated_sensor_token'])
         camera_intrinsic = np.array(front_camera_sensor['camera_intrinsic'])
 
         target = []
+        for bbox_3d in self.nusc.get_boxes(token):
 
-        for ann_token in sample['anns']:
-            annotation_data = self.nusc.get('sample_annotation', ann_token)
-            bbox_3d = self.nusc.get_box(ann_token)
             if bbox_3d.name not in NuScenesDataset.NUSC_CLASS_TO_GROUP_IDS or NuScenesDataset.NUSC_CLASS_TO_GROUP_IDS_KITTI[bbox_3d.name] == 8:
                 continue
-            if int(annotation_data['visibility_token']) < 2:
-                continue
             id_type = NuScenesDataset.NUSC_CLASS_TO_GROUP_IDS_KITTI[bbox_3d.name]
-
-            if annotation_data['instance_token'] not in self.TRACKID_LOOKUP:
-                self.TRACKID_LOOKUP[annotation_data['instance_token']] = len(self.TRACKID_LOOKUP)
+            
+            instance_token = nusc.get('sample_annotation', bbox_3d.token)['instance_token']
+            if instance_token not in self.TRACKID_LOOKUP:
+                self.TRACKID_LOOKUP[instance_token] = len(self.TRACKID_LOOKUP)
 
             target.append(
                 {
                     'frame': None,
-                    'trackID': self.TRACKID_LOOKUP[annotation_data['instance_token']],
+                    'trackID': self.TRACKID_LOOKUP[instance_token],
                     'type': bbox_3d.name,
                     'truncated': 0,
                     'occluded': 0,
@@ -457,9 +424,8 @@ class NuScenesDataset(KittiAbstract):
         token = self.idx_sample_dict[index]
         while True:
 
-            sample = self.nusc.get('sample', token)
-            data = self.nusc.get('sample_data', sample['data']["CAM_FRONT"])
-            image_path = os.path.join(self.root, self.version, data['filename'])
+            sample_data = self.nusc.get('sample_data', token)
+            image_path = os.path.join(self.root, self.version, sample_data['filename'])
 
             if timestep == counter:
                 return image_path
@@ -470,7 +436,7 @@ class NuScenesDataset(KittiAbstract):
             if counter == self.clip_length:
                 return ret
             
-            token = sample['next']
+            token = sample_data['next']
     
     def get_bbox_image_file_by_index(self, index, timestep=0, image_file=None):
         
@@ -486,8 +452,7 @@ class NuScenesDataset(KittiAbstract):
         token = self.idx_sample_dict[index]
         while True:
 
-            sample = self.nusc.get('sample', token)
-            data = self.nusc.get('sample_data', sample['data']["CAM_FRONT"])
+            sample_data = self.nusc.get('sample', token)
             image_path = os.path.join(self.bbox_dir, f'{token}.png')
 
             if timestep == counter:
@@ -501,9 +466,10 @@ class NuScenesDataset(KittiAbstract):
                 self.bbox_dir = orig_bbox_dir
                 return ret
             
-            token = sample['next']
+            token = sample_data['next']
     
     def prompt_engineer(self, *args):
+        # NOTE: nuScenes has actual descriptions for each scenes (scene['description']) that can be used
         return  'This is a real-world driving scene.'
 
     
