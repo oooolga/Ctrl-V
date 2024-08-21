@@ -356,6 +356,7 @@ def main():
                                 noise_aug_strength=args.noise_aug_strength,
                                 generator=generator, output_type='pt',
                                 num_cond_bbox_frames=args.num_cond_bbox_frames).frames[0]
+
                 #frames = F.interpolate(frames, (train_dataset.orig_H, train_dataset.orig_W)).detach().cpu().numpy()*255
                 frames = frames.detach().cpu().numpy()*255
                 frames = frames.astype(np.uint8)
