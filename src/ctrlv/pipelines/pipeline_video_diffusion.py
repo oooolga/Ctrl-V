@@ -295,10 +295,11 @@ class VideoDiffusionPipeline(StableVideoDiffusionPipeline_original):
         if not output_type == "latent":
             frames = self.decode_latents(latents, num_frames, decode_chunk_size)
             frames = torch.clamp(frames, -1, 1)
-            for i in range(frames.shape[2]):
-                frame = frames[:, :, i]
-                if frame.min() > -0.9:
-                    frames[:,:,i] = torch.zeros_like(frame)
+            # not sure why these codes were here
+            # for i in range(frames.shape[2]):
+            #     frame = frames[:, :, i]
+            #     if frame.min() > -0.9:
+            #         frames[:,:,i] = torch.zeros_like(frame)
             frames = tensor2vid(frames, self.image_processor, output_type=output_type)
         else:
             frames = latents

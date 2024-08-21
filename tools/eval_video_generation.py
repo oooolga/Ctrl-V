@@ -98,7 +98,9 @@ def main():
                 str(accelerator.device).replace(":0", ""), enabled=accelerator.mixed_precision == "fp16"
             ):
                 from ctrlv.models import UNetSpatioTemporalConditionModel
-                if not os.path.isfile(os.path.join(args.pretrained_model_name_or_path, "unet")):
+                if 'stabilityai' in args.pretrained_model_name_or_path:
+                    pass
+                elif not os.path.isfile(os.path.join(args.pretrained_model_name_or_path, "unet")):
                     # Get the most recent checkpoint
                     dirs = os.listdir(args.pretrained_model_name_or_path)
                     dirs = [d for d in dirs if d.startswith("checkpoint")]
