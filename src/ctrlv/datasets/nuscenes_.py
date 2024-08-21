@@ -8,7 +8,7 @@ from collections import defaultdict
 import cv2
 import os
 import torch
-from .kitti_abstract import KittiAbstract
+from ctrlv.datasets.kitti_abstract import KittiAbstract
 import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
@@ -171,7 +171,7 @@ class NuScenesDataset(KittiAbstract):
     }
 
     def __init__(self,
-                 root='/network/scratch/a/anthony.gosselin/nuscenes', 
+                 root='/network/scratch/a/anthony.gosselin', 
                  bbox_dir=None,
                  train=True,
                  target_transform=None,
@@ -203,7 +203,7 @@ class NuScenesDataset(KittiAbstract):
         
         # assert data_type == 'clip', "Only clip data type is supported for NuScenes dataset."
         self.version = 'nuscenes'
-        self.nusc = NuScenes(version='v1.0-trainval',
+        self.nusc = NuScenes(version='v1.0-trainval', # 'v1.0-mini'
                              dataroot=os.path.join(self.root, self.version),
                              verbose=True)
         self.if_3d = if_3d
@@ -214,25 +214,44 @@ class NuScenesDataset(KittiAbstract):
         
         self.TRACKID_LOOKUP = {}
 
+        self.fps = 7 # NOTE: when setting to fps=7 with -0.05 correction term on target_period, the real fps is more like 8
+        target_period = 1/self.fps - 0.05  # For fps downsampling
         for scene_i, scene in enumerate(self.nusc.scene):
             
             self.scene_sample_dict[scene['name']]['scene'] = scene_i
-            self.scene_sample_dict[scene['name']['frontcam_samples']] = []  # NOTE: Currently only using front camera data
+            self.scene_sample_dict[scene['name']]['frontcam_samples'] = []  # NOTE: Currently only using front camera data
             
-            curr_data_token = self.nusc.get('sample_data', scene['first_sample_token'])['data']["CAM_FRONT"]
-
+            curr_data_token = self.nusc.get('sample', scene['first_sample_token'])['data']["CAM_FRONT"]
+            self.scene_sample_dict[scene['name']]['frontcam_samples'].append(curr_data_token)
+            
+            cumul_delta = 0
             while curr_data_token:
                 curr_sample_data = self.nusc.get('sample_data', curr_data_token)
-                self.scene_sample_dict[scene['name']]['frontcam_samples'].append(curr_data_token)
-                curr_data_token = curr_sample_data['next']
+                
+                next_sample_data_token = curr_sample_data['next']
+                if not next_sample_data_token:
+                    break
+                next_sample_data = self.nusc.get('sample_data', next_sample_data_token)
+
+                # FPS downsampling: only select certain frames based on elapsed times 
+                delta = (next_sample_data['timestamp'] - curr_sample_data['timestamp']) / 1e6
+                cumul_delta += delta
+                if cumul_delta >= target_period:
+                    self.scene_sample_dict[scene['name']]['frontcam_samples'].append(next_sample_data_token)
+                    cumul_delta = 0
+
+                curr_data_token = next_sample_data_token
             
             if self.data_type == 'image':
                 for i in range(len(self.scene_sample_dict[scene['name']]['frontcam_samples'])):
                     self.idx_sample_dict.append(self.scene_sample_dict[scene['name']]['frontcam_samples'][i])
             
             elif self.data_type == 'clip':
-                for i in range(len(self.scene_sample_dict[scene['name']]['frontcam_samples'])-self.clip_length+1):
-                    self.idx_sample_dict.append(self.scene_sample_dict[scene['name']]['frontcam_samples'][i])
+                # In case self.clip_length << actual video sample length (~20s), we can create multiple non-overlapping clips for each sample
+                total_frames = len(self.scene_sample_dict[scene['name']]['frontcam_samples'])
+                for clip_i in range(total_frames // self.clip_length):
+                    start_image_idx = clip_i * self.clip_length
+                    self.idx_sample_dict.append(self.scene_sample_dict[scene['name']]['frontcam_samples'][start_image_idx])
         
     def __len__(self):
         return len(self.idx_sample_dict)
@@ -269,7 +288,7 @@ class NuScenesDataset(KittiAbstract):
                 bboxes = self.nusc.get_boxes(token)
 
                 sample_data = self.nusc.get('sample_data', token)
-                ego_pose = nusc.get('ego_pose', sample_data['ego_pose_token'])
+                ego_pose = self.nusc.get('ego_pose', sample_data['ego_pose_token'])
                 front_camera_sensor = self.nusc.get('calibrated_sensor', sample_data['calibrated_sensor_token'])
 
                 fig, ax = plt.subplots()
@@ -345,7 +364,7 @@ class NuScenesDataset(KittiAbstract):
                 continue
             id_type = NuScenesDataset.NUSC_CLASS_TO_GROUP_IDS_KITTI[bbox_3d.name]
             
-            instance_token = nusc.get('sample_annotation', bbox_3d.token)['instance_token']
+            instance_token = self.nusc.get('sample_annotation', bbox_3d.token)['instance_token']
             if instance_token not in self.TRACKID_LOOKUP:
                 self.TRACKID_LOOKUP[instance_token] = len(self.TRACKID_LOOKUP)
 
