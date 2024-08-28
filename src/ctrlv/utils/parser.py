@@ -5,7 +5,7 @@ def parse_args():
     parser.add_argument(
         "--project_name",
         type=str,
-        default="sd3d",
+        default="ctrlv",
         help="Name of the project."
     )
     parser.add_argument(
@@ -397,6 +397,18 @@ def parse_args():
         type=int,
         default=3,
         help="Number of conditioning bbox frames."
+    )
+    parser.add_argument(
+        "--wandb_entity",
+        type=str,
+        default="",
+        help="Wandb entity",
+    )
+    parser.add_argument(
+        "--non_overlapping_clips",
+        action="store_true",
+        default=False,
+        help="Load clips that do not overlap in dataset",
     )
     args = parser.parse_args()
     # default to using the same revision for the non-ema model if not specified

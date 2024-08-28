@@ -57,7 +57,8 @@ class VKittiDataset(KittiAbstract):
                  if_return_calib=False,
                  if_return_bbox_im=False,
                  train_H=None, train_W=None,
-                 use_preplotted_bbox=True):
+                 use_preplotted_bbox=True,
+                 non_overlapping_clips=False):
         
         super(VKittiDataset, self).__init__(root=root, 
                                            train=train, 
@@ -89,8 +90,16 @@ class VKittiDataset(KittiAbstract):
                     setting_images.append(len(self.image_list)-1)
                 scene[setting] = setting_images
                 if self.data_type == 'clip':
-                    for image_idx in range(len(scene[setting])-self.clip_length):
-                        self.clip_list.append(scene[setting][image_idx:image_idx+self.clip_length])
+                    if not non_overlapping_clips:
+                        for image_idx in range(len(scene[setting])-self.clip_length):
+                            self.clip_list.append(scene[setting][image_idx:image_idx+self.clip_length])
+                    else:
+                        # In case self.clip_length << actual video sample length, we can create multiple non-overlapping clips for each sample    
+                        total_frames = len(scene[setting])
+                        for clip_i in range(total_frames // self.clip_length):
+                            start_image_idx = clip_i * self.clip_length
+                            end_image_idx = start_image_idx + self.clip_length
+                            self.clip_list.append(scene[setting][start_image_idx:end_image_idx])
             self.images[subfolder] = scene
 
 

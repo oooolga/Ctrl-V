@@ -1,3 +1,8 @@
+# Other
+outputs/
+lightning_logs/
+video_out/
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]

@@ -4,10 +4,10 @@ import numpy as np
 from collections import defaultdict
 from typing import Union
 
-from sd3d.bbox_prediction.models.bbox_predictor_lm import BboxPredictorLM
-from sd3d.bbox_prediction.utils import process_data, undiscretize_actions, actions_to_bbox_seq, create_video_from_numpy_array, bbox_seq_to_actions, discretize_actions, VOCABULARY_SIZE
-from sd3d.utils import plot_3d_bbox, get_n_training_samples, get_dataloader
-from sd3d.metrics import binary_mask_iou
+from ctrlv.bbox_prediction.models.bbox_predictor_lm import BboxPredictorLM
+from ctrlv.bbox_prediction.utils import process_data, undiscretize_actions, actions_to_bbox_seq, create_video_from_numpy_array, bbox_seq_to_actions, discretize_actions, VOCABULARY_SIZE
+from ctrlv.utils import plot_3d_bbox, get_n_training_samples, get_dataloader
+from ctrlv.metrics import binary_mask_iou
 
 from torchvision import transforms
 transform = transforms.Compose([
@@ -36,7 +36,7 @@ class BboxPredictorLMPolicy:
         self.gt_frame_size = (dataset.orig_W, dataset.orig_H) # NOTE: Change for datasets other than Kitti
         
         print(f"Fetching {num_samples} sample{'s' if num_samples != 1 else ''}...")
-        demo_samples = get_n_training_samples(dataloader_val, num_samples, show_progess=(num_samples >= 10))
+        demo_samples = get_n_training_samples(dataloader_val, num_samples, show_progress=(num_samples >= 10))
         _ = self.generate_rollouts(demo_samples)
 
 

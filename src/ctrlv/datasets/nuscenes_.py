@@ -129,11 +129,14 @@ class NuScenesDataset(KittiAbstract):
 
     # Based on closest match to KITTI classes
     NUSC_CLASS_TO_GROUP_IDS_KITTI = {
+        "animal": 8,
         "human.pedestrian.adult": 4,
         "human.pedestrian.child":  4,
         "human.pedestrian.construction_worker": 5,
         "human.pedestrian.personal_mobility": 4,
         "human.pedestrian.police_officer": 5,
+        "human.pedestrian.stroller": 8,
+        "human.pedestrian.wheelchair": 4,
         "movable_object.barrier": 8,
         "movable_object.debris":  8,
         "movable_object.pushable_pullable": 8,
@@ -144,17 +147,23 @@ class NuScenesDataset(KittiAbstract):
         "vehicle.bus.rigid":  3,
         "vehicle.car": 1,
         "vehicle.construction":  3,
+        "vehicle.emergency.ambulance": 3,
+        "vehicle.emergency.police": 1,
         "vehicle.motorcycle":  6,  # NOTE: Not sure if best to classify as cyclist or car...
         "vehicle.trailer":  3,
         "vehicle.truck":  3,
+        "None": 9,
     }
     # Based on closest match to BDD100k classes
     NUSC_CLASS_TO_GROUP_IDS = NUSC_CLASS_TO_GROUP_IDS_BDD = {
+        "animal": 1,
         "human.pedestrian.adult": 1,
         "human.pedestrian.child":  1,
         "human.pedestrian.construction_worker": 1,
         "human.pedestrian.personal_mobility": 1,
         "human.pedestrian.police_officer": 1,
+        "human.pedestrian.stroller": 1,
+        "human.pedestrian.wheelchair": 1,
         "movable_object.barrier": 10,
         "movable_object.debris":  10,
         "movable_object.pushable_pullable": 10,
@@ -165,9 +174,12 @@ class NuScenesDataset(KittiAbstract):
         "vehicle.bus.rigid":  5,
         "vehicle.car": 3,
         "vehicle.construction":  4,
+        "vehicle.emergency.ambulance": 4,
+        "vehicle.emergency.police": 3,
         "vehicle.motorcycle":  7, 
         "vehicle.trailer":  4,
         "vehicle.truck":  4,
+        "None": 1,
     }
 
     def __init__(self,
@@ -185,7 +197,8 @@ class NuScenesDataset(KittiAbstract):
                  train_H=None, train_W=None,
                  use_segmentation=False,
                  use_preplotted_bbox=True,
-                 if_3d=False):
+                 if_3d=False,
+                 non_overlapping_clips=False):
 
         super(NuScenesDataset, self).__init__(root=root, 
                                               train=train, 
@@ -207,11 +220,11 @@ class NuScenesDataset(KittiAbstract):
                              dataroot=os.path.join(self.root, self.version),
                              verbose=True)
         self.if_3d = if_3d
-
         self.scene_sample_dict = defaultdict(dict)
         self.idx_sample_dict = []
         self.bbox_dir = bbox_dir
-        
+        self.non_overlapping_clips = non_overlapping_clips
+
         self.TRACKID_LOOKUP = {}
 
         self.fps = 7 # NOTE: when setting to fps=7 with -0.05 correction term on target_period, the real fps is more like 8
@@ -247,11 +260,17 @@ class NuScenesDataset(KittiAbstract):
                     self.idx_sample_dict.append(self.scene_sample_dict[scene['name']]['frontcam_samples'][i])
             
             elif self.data_type == 'clip':
-                # In case self.clip_length << actual video sample length (~20s), we can create multiple non-overlapping clips for each sample
-                total_frames = len(self.scene_sample_dict[scene['name']]['frontcam_samples'])
-                for clip_i in range(total_frames // self.clip_length):
-                    start_image_idx = clip_i * self.clip_length
-                    self.idx_sample_dict.append(self.scene_sample_dict[scene['name']]['frontcam_samples'][start_image_idx])
+                if not self.non_overlapping_clips:
+                    for i in range(len(self.scene_sample_dict[scene['name']]['frontcam_samples'])-self.clip_length+1):
+                        self.idx_sample_dict.append(self.scene_sample_dict[scene['name']]['frontcam_samples'][i])
+                else:
+                    # In case self.clip_length << actual video sample length (~20s), we can create multiple non-overlapping clips for each sample
+                    total_frames = len(self.scene_sample_dict[scene['name']]['frontcam_samples'])
+                    for clip_i in range(total_frames // self.clip_length):
+                        start_image_idx = clip_i * self.clip_length
+                        self.idx_sample_dict.append(self.scene_sample_dict[scene['name']]['frontcam_samples'][start_image_idx])
+                        
+        print("Number of clips:", len(self.idx_sample_dict))
         
     def __len__(self):
         return len(self.idx_sample_dict)
@@ -471,7 +490,7 @@ class NuScenesDataset(KittiAbstract):
         token = self.idx_sample_dict[index]
         while True:
 
-            sample_data = self.nusc.get('sample', token)
+            sample_data = self.nusc.get('sample_data', token)
             image_path = os.path.join(self.bbox_dir, f'{token}.png')
 
             if timestep == counter:

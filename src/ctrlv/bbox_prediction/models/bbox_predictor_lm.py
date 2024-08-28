@@ -5,8 +5,8 @@ import pytorch_lightning as pl
 from pytorch_lightning.utilities import grad_norm
 from PIL import Image
 
-from sd3d.bbox_prediction.modules import Encoder, Decoder
-from sd3d.bbox_prediction.utils import create_lambda_lr, process_data, VOCABULARY_SIZE
+from ctrlv.bbox_prediction.modules import Encoder, Decoder
+from ctrlv.bbox_prediction.utils import create_lambda_lr, process_data, VOCABULARY_SIZE
 
 torch.set_printoptions(sci_mode=False)
 
@@ -95,7 +95,7 @@ class BboxPredictorLM(pl.LightningModule):
 
     def training_step(self, data, batch_idx):
         
-        # from sd3d.datasets import kitti_clip_collate_fn
+        # from ctrlv.datasets import kitti_clip_collate_fn
         # dset = torch.utils.data.Subset(self.trainer.datamodule.dataset_train, list(range(285*16, 285*16 + 200)))
         # collate_fn = lambda x: kitti_clip_collate_fn(x, None)
 

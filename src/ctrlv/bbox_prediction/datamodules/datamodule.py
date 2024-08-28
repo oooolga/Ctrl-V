@@ -1,6 +1,6 @@
 import pytorch_lightning as pl 
 
-from sd3d.utils.util import get_dataloader
+from ctrlv.utils.util import get_dataloader
 
 
 class DataModule(pl.LightningDataModule):

@@ -2,7 +2,7 @@ import torch
 import torch.nn as nn
 from torch.nn import Transformer
 
-from sd3d.bbox_prediction.utils import VOCABULARY_SIZE, weight_init, MLPLayer
+from ctrlv.bbox_prediction.utils import VOCABULARY_SIZE, weight_init, MLPLayer
 
 
 class Decoder(nn.Module):

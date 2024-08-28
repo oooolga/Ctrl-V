@@ -6,6 +6,7 @@ from diffusers.pipelines.stable_video_diffusion.pipeline_stable_video_diffusion 
 from PIL import Image
 import numpy as np
 import os
+from tqdm import tqdm
 
 from einops import rearrange
 
@@ -35,15 +36,15 @@ def tokenize_captions(batch_prompts, tokenizer):
 
 def get_dataloader(dset_root, dset_name, if_train, batch_size, num_workers, data_type='image', clip_length=10,
                    collate_fn=None, use_default_collate=True, tokenizer=None, shuffle=True, if_return_bbox_im=False,
-                   train_H=None, train_W=None, use_segmentation=False, use_preplotted_bbox=True, if_last_frame_traj=False):
+                   train_H=None, train_W=None, use_segmentation=False, use_preplotted_bbox=True, if_last_frame_traj=False, non_overlapping_clips=False):
     if dset_name.lower() == 'kitti':
         from ctrlv.datasets import KittiDataset
         dset = KittiDataset(root=dset_root, train=if_train, data_type=data_type, clip_length=clip_length, if_return_bbox_im=if_return_bbox_im,
-                            train_H=train_H, train_W=train_W) #, use_preplotted_bbox=use_preplotted_bbox)
+                            train_H=train_H, train_W=train_W, non_overlapping_clips=non_overlapping_clips) #, use_preplotted_bbox=use_preplotted_bbox)
     elif dset_name.lower() == 'vkitti':
         from ctrlv.datasets import VKittiDataset
         dset = VKittiDataset(root=dset_root, train=if_train, data_type=data_type, clip_length=clip_length, if_return_bbox_im=if_return_bbox_im,
-                             train_H=train_H, train_W=train_W, use_preplotted_bbox=use_preplotted_bbox)
+                             train_H=train_H, train_W=train_W, use_preplotted_bbox=use_preplotted_bbox, non_overlapping_clips=non_overlapping_clips)
     elif dset_name.lower() == 'mkitti':
         from ctrlv.datasets import MergedKittiDataset
         dset = MergedKittiDataset(root=dset_root, train=if_train, data_type=data_type, clip_length=clip_length, if_return_bbox_im=if_return_bbox_im,
@@ -63,7 +64,7 @@ def get_dataloader(dset_root, dset_name, if_train, batch_size, num_workers, data
         from ctrlv.datasets import NuScenesDataset
         dset = NuScenesDataset(root=dset_root, train=if_train, data_type=data_type, clip_length=clip_length, if_return_bbox_im=if_return_bbox_im,
                                train_H=train_H, train_W=train_W, use_preplotted_bbox=True, if_3d=True,
-                               bbox_dir='/network/scratch/x/xuolga/Datasets/nuscenes/preprocess_bbox_frames')
+                               bbox_dir='/network/scratch/x/xuolga/Datasets/nuscenes/preprocess_bbox_frames', non_overlapping_clips=non_overlapping_clips)
     else:
         raise NotImplementedError("Dataset not implemented")
 
@@ -123,6 +124,31 @@ def encode_video_image(pixel_values, feature_extractor, weight_dtype, image_enco
     image_embeddings = image_encoder(pixel_values).image_embeds
     return image_embeddings
 
+
+def get_model_attr(model, attribute, *args, **kwargs):
+    """
+    Get an attribute or call a method of the model.
+    
+    Parameters:
+    - model: The model instance (potentially wrapped in DDP or DP).
+    - attribute: The name of the attribute or method to access or call.
+    - args: Positional arguments to pass if calling a method.
+    - kwargs: Keyword arguments to pass if calling a method.
+    
+    Returns:
+    - The attribute value, or the result of the method call.
+    """
+    if hasattr(model, 'module'):
+        model = model.module
+
+    attr = getattr(model, attribute)
+    
+    if callable(attr):
+        return attr(*args, **kwargs)
+    
+    return attr
+
+
 def get_add_time_ids(
         fps,
         motion_bucket_id,
@@ -134,9 +160,10 @@ def get_add_time_ids(
     """"https://github.com/huggingface/diffusers/blob/56bd7e67c2e01122cc93d98f5bd114f9312a5cce/src/diffusers/pipelines/stable_video_diffusion/pipeline_stable_video_diffusion.py#L215"""
     add_time_ids = [fps, motion_bucket_id, noise_aug_strength]
 
-    passed_add_embed_dim = unet.config.addition_time_embed_dim * len(add_time_ids)
+    unet_config = get_model_attr(unet, 'config')
+    passed_add_embed_dim = unet_config.addition_time_embed_dim * len(add_time_ids)
     
-    expected_add_embed_dim = unet.add_embedding.linear_1.in_features
+    expected_add_embed_dim = get_model_attr(unet, 'add_embedding').linear_1.in_features
 
     if expected_add_embed_dim != passed_add_embed_dim:
         raise ValueError(
@@ -256,11 +283,11 @@ def get_first_training_sample(batch, dataset):
     return sample
     
 
-def get_n_training_samples(data_loader, n_samples):
+def get_n_training_samples(data_loader, n_samples, show_progress=False):
     samples = []
 
     dataset = data_loader.dataset
-    for i, batch in enumerate(data_loader):
+    for i, batch in tqdm(enumerate(data_loader), total=n_samples, disable=not show_progress):
         if i >= n_samples:
             break
         sample = get_first_training_sample(batch, dataset)

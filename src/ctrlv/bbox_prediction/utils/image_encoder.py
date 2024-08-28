@@ -8,7 +8,7 @@ from diffusers.image_processor import PipelineImageInput, VaeImageProcessor
 from transformers import CLIPImageProcessor, CLIPVisionModelWithProjection
 from diffusers.models import AutoencoderKLTemporalDecoder
 
-from sd3d.bbox_prediction.utils import MLPLayer
+from ctrlv.bbox_prediction.utils import MLPLayer
 
 
 class ImageEncoder(nn.Module):

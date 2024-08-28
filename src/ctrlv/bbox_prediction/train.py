@@ -1,7 +1,7 @@
 import os 
 import hydra
-from sd3d.bbox_prediction.models.bbox_predictor_lm import BboxPredictorLM
-from sd3d.bbox_prediction.datamodules.datamodule import DataModule
+from ctrlv.bbox_prediction.models.bbox_predictor_lm import BboxPredictorLM
+from ctrlv.bbox_prediction.datamodules.datamodule import DataModule
 
 import torch
 torch.set_float32_matmul_precision('medium')
@@ -11,7 +11,7 @@ from pytorch_lightning.callbacks import ModelCheckpoint, ModelSummary
 from pytorch_lightning.loggers import WandbLogger
 
 
-@hydra.main(version_base=None, config_path="/home/mila/a/anthony.gosselin/dev/Ctrl-V/src/sd3d/bbox_prediction/cfgs/", config_name="config")
+@hydra.main(version_base=None, config_path="/home/mila/a/anthony.gosselin/dev/Ctrl-V_dev/src/ctrlv/bbox_prediction/cfgs/", config_name="config")
 def main(cfg):
     pl.seed_everything(cfg.seed, workers=True)
 
@@ -56,6 +56,7 @@ def main(cfg):
                          devices=cfg.num_devices,
                          callbacks=[model_summary, model_checkpoint, lr_monitor],
                          max_steps=cfg.max_steps,
+                         max_epochs=50,
                          check_val_every_n_epoch=cfg.val_freq,
                          precision=cfg.precision,
                          limit_train_batches=cfg.train_data_fraction, 

@@ -286,7 +286,7 @@ def evaluate_vids(vid_dir):
     import pdb; pdb.set_trace()
 
 if __name__ == '__main__':
-    # from sd3d.utils.util import get_dataloader
+    # from ctrlv.utils.util import get_dataloader
     # root = "/network/scratch/x/xuolga/Datasets/"
     # kitti_image_dset, kitti_image_loader = get_dataloader(root, 'bdd100k', if_train=True, batch_size=10, num_workers=1, data_type='clip', clip_length=25, use_default_collate=True, tokenizer=None, shuffle=True)
     # batch = next(iter(kitti_image_loader))

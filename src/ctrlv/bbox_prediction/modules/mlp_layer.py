@@ -1,5 +1,5 @@
 from torch import nn
-from sd3d.bbox_prediction.utils import weight_init
+from ctrlv.bbox_prediction.utils import weight_init
 
 
 class MLPLayer(nn.Module):

@@ -10,7 +10,7 @@ val_freq: 1  # Check val every x epochs
 train_batch_size: 2 
 val_batch_size: 2
 train_data_fraction: 1.0 # 0.25
-val_data_fraction: 1.0 # 0.25
+val_data_fraction: 0.25
 precision: 32-true # bf16-mixed for bfloat16 mixed precision or 32-true for regular
 gradient_clip_val: 1.0  # TODO: TBD if this is a reasonable value
 lr: 5e-4
@@ -37,7 +37,7 @@ num_decoder_layers: 4
 num_encoder_layers: 2
 
 num_timesteps: 25  # AKA "clip_length" (number of frames per video)
-max_num_agents: 15  # To be changed according to MAX_BOXES_PER_DATA (sd3d/datasets/__init__.py)
+max_num_agents: 15  # To be changed according to MAX_BOXES_PER_DATA (ctrlv/datasets/__init__.py)
 video_fps: 7
 num_demo_samples: 1
 train_W: 512

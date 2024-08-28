@@ -45,7 +45,8 @@ class KittiDataset(KittiAbstract):
                  if_return_calib=False,
                  if_return_bbox_im=False,
                  train_H=None, train_W=None,
-                 use_preplotted_bbox=True):
+                 use_preplotted_bbox=True,
+                 non_overlapping_clips=False):
 
         super(KittiDataset, self).__init__(root=root, 
                                            train=train, 
@@ -72,8 +73,16 @@ class KittiDataset(KittiAbstract):
                 self.image_list.append(os.path.join(scene_dir, image_file))
                 self.images[scene].append(len(self.image_list)-1)
             if self.data_type == 'clip':
-                for image_idx in range(len(self.images[scene])-self.clip_length):
-                    self.clip_list.append(self.images[scene][image_idx:image_idx+self.clip_length])
+                if not non_overlapping_clips:
+                    for image_idx in range(len(self.images[scene])-self.clip_length):
+                        self.clip_list.append(self.images[scene][image_idx:image_idx+self.clip_length])
+                else:
+                    # In case self.clip_length << actual video sample length, we can create multiple non-overlapping clips for each sample    
+                    total_frames = len(self.images[scene])
+                    for clip_i in range(total_frames // self.clip_length):
+                        start_image_idx = clip_i * self.clip_length
+                        end_image_idx = start_image_idx + self.clip_length
+                        self.clip_list.append(self.images[scene][start_image_idx:end_image_idx])
         
 
     def _getimageitem(self, index, return_prompt=False, return_calib=False, return_index=False, return_bbox_im=False):

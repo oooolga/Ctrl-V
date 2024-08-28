@@ -39,7 +39,7 @@ from diffusers.training_utils import EMAModel
 
 with warnings.catch_warnings():
     warnings.simplefilter("ignore")
-    from ctrlv.utils import parse_args, get_dataloader, encode_video_image, get_add_time_ids, get_fourier_embeds_from_boundingbox, get_n_training_samples, wandb_frames_with_bbox
+    from ctrlv.utils import parse_args, get_dataloader, encode_video_image, get_add_time_ids, get_fourier_embeds_from_boundingbox, get_n_training_samples, wandb_frames_with_bbox, get_model_attr
     from ctrlv.models import UNetSpatioTemporalConditionModel#, UNetSpatioTemporalConditionModel_with_bbox_cond
     from ctrlv.pipelines import VideoDiffusionPipeline
 
@@ -229,7 +229,8 @@ def main():
                                                     if_return_bbox_im=True, train_H=args.train_H, train_W=args.train_W,
                                                     use_segmentation=args.use_segmentation, 
                                                     use_preplotted_bbox=not args.if_last_frame_trajectory,
-                                                    if_last_frame_traj=args.if_last_frame_trajectory,)
+                                                    if_last_frame_traj=args.if_last_frame_trajectory,
+                                                    non_overlapping_clips=args.non_overlapping_clips)
         # _, test_loader = get_dataloader(args.dataset_name, if_train=True, 
         #                                 batch_size=1, num_workers=args.dataloader_num_workers, 
         #                                 data_type='clip', use_default_collate=True, tokenizer=None, shuffle=True)
@@ -268,7 +269,7 @@ def main():
         # We need to initialize the trackers we use, and also store our configuration.
         # The trackers initializes automatically on the main process.
         if accelerator.is_main_process:
-            accelerator.init_trackers(args.project_name, config=vars(args), init_kwargs={"wandb": {"dir": args.output_dir, "name": args.run_name}})
+            accelerator.init_trackers(args.project_name, config=vars(args), init_kwargs={"wandb": {"dir": args.output_dir, "name": args.run_name, "entity": args.wandb_entity}})
 
         def get_sigmas(timesteps, n_dim=5, dtype=torch.float32):
             sigmas = noise_scheduler.sigmas.to(device=accelerator.device, dtype=dtype)
@@ -371,6 +372,8 @@ def main():
             
             train_loss = 0.0
             for _, batch in enumerate(train_loader):
+
+                unet_dtype = get_model_attr(unet, 'dtype') 
                 
                 ## update optimizer's parameters
                 if args.backprop_temporal_blocks_start_iter >= 0:
@@ -441,17 +444,17 @@ def main():
                     initial_frame_latent = vae.encode(initial_images.to(weight_dtype)).latent_dist.sample()
                     if not args.predict_bbox:
                         # Encode input image using VAE
-                        conditional_latents = initial_frame_latent.to(dtype=unet.dtype)
+                        conditional_latents = initial_frame_latent.to(dtype=unet_dtype)
                     else:
                         if args.if_last_frame_trajectory:
-                            conditional_latents = latents.to(dtype=unet.dtype)
+                            conditional_latents = latents.to(dtype=unet_dtype)
                             last_conditional_latents = conditional_latents[:,-1,::]
                             latents = latents[:,:-1,::]
                             conditional_latents = conditional_latents[:,:-1,::]
                             conditional_latents[:,args.num_cond_bbox_frames:-1,::] = initial_frame_latent.unsqueeze(1).repeat(1, video_length-args.num_cond_bbox_frames-1, 1, 1, 1)
                             conditional_latents[:,-1,::] = last_conditional_latents
                         else:
-                            conditional_latents = latents.to(dtype=unet.dtype)
+                            conditional_latents = latents.to(dtype=unet_dtype)
                             conditional_latents[:,args.num_cond_bbox_frames:-1,::] = initial_frame_latent.unsqueeze(1).repeat(1, video_length-args.num_cond_bbox_frames-1, 1, 1, 1)
 
                     target_latents = latents = latents * vae.config.scaling_factor
@@ -506,13 +509,13 @@ def main():
 
                     # Concatenate the `original_image_embeds` with the `noisy_latents`.
                     if not args.predict_bbox:
-                        conditional_latents = unet.encode_bbox_frame(conditional_latents, None)
+                        conditional_latents = get_model_attr(unet, 'encode_bbox_frame', conditional_latents, None)
                     
                     concatenated_noisy_latents = torch.cat([inp_noisy_latents, conditional_latents], dim=2)
                     model_pred = unet(concatenated_noisy_latents,
                                     timestep=timesteps,
-                                    encoder_hidden_states=encoder_hidden_states.to(dtype=unet.dtype), 
-                                    added_time_ids=added_time_ids.to(dtype=unet.dtype)).sample
+                                    encoder_hidden_states=encoder_hidden_states.to(dtype=unet_dtype), 
+                                    added_time_ids=added_time_ids.to(dtype=unet_dtype)).sample
 
                     # Denoise the latents
                     c_out = -sigmas / ((sigmas**2 + 1)**0.5)
@@ -544,7 +547,7 @@ def main():
                 # Checks if the accelerator has performed an optimization step behind the scenes
                 if accelerator.sync_gradients:
                     if args.use_ema:
-                        ema_unet.step(unet.parameters())
+                        ema_unet.step(get_model_attr(unet, 'parameters'))
                     progress_bar.update(1)
                     global_step += 1
                     log_plot = {
@@ -552,7 +555,7 @@ def main():
                                 "lr": lr_scheduler.get_last_lr()[0],
                             }
                     if args.add_bbox_frame_conditioning:
-                        log_plot["|attn_rz_weight|"] = unet.get_attention_rz_weight()
+                        log_plot["|attn_rz_weight|"] = get_model_attr(unet, 'get_attention_rz_weight')
                     accelerator.log(log_plot, step=global_step)
                     train_loss = 0.0
 

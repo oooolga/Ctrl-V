@@ -13,11 +13,14 @@ Pillow==10.4.0
 Requests==2.32.3
 scipy==1.14.0
 setuptools==69.5.1
-skimage==0.0
-torch==2.2.2+cu121
-torchvision==0.17.2+cu121
+scikit-image #skimage==0.0
+torch #==2.2.2+cu121
+torchvision #==0.17.2+cu121
 tqdm==4.66.4
 transformers==4.36.2
 ultralytics==8.2.27
 wandb==0.17.3
 xformers==0.0.26.post1
+nuscenes-devkit
+pytorch-lightning
+hydra-core

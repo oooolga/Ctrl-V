@@ -5,7 +5,7 @@ from .bdd100k import BDD100KDataset
 from .davis import DAVISDataset
 from .nuscenes_ import NuScenesDataset
 
-MAX_BOXES_PER_DATA =30
+MAX_BOXES_PER_DATA = 30
 
 def init_objects(len_target=0, device=None):
     import torch
@@ -93,7 +93,9 @@ def kitti_clip_collate_fn(batch, tokenize_fn):
                 frame_objects[key] = torch.stack(frame_objects[key])
             collated_batch['objects'][key].append(frame_objects[key])
     
-    collated_batch['clips'] = torch.stack(collated_batch['clips'])
+    if collated_batch['clips'][0] is not None:
+        collated_batch['clips'] = torch.stack(collated_batch['clips'])
+        
     for key in collated_batch['objects']:
         if not key == 'type' and not key == 'num_objects':
             collated_batch['objects'][key] = torch.stack(collated_batch['objects'][key])
@@ -137,7 +139,9 @@ def kitti_clip_with_bbox_collate_fn(batch, tokenize_fn):
                 frame_objects[key] = torch.stack(frame_objects[key])
             collated_batch['objects'][key].append(frame_objects[key])
     
-    collated_batch['clips'] = torch.stack(collated_batch['clips'])
+    if collated_batch['clips'][0] is not None:
+        collated_batch['clips'] = torch.stack(collated_batch['clips'])
+
     collated_batch['bbox_images'] = torch.stack(collated_batch['bbox_images'])
     for key in collated_batch['objects']:
         if not key == 'type' and not key == 'num_objects':

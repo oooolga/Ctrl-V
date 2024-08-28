@@ -1,7 +1,7 @@
 import torch
 import torch.nn as nn
 
-from sd3d.bbox_prediction.utils import weight_init, MLPLayer, PositionalEncoding, VOCABULARY_SIZE, discretize_actions, ImageEncoder
+from ctrlv.bbox_prediction.utils import weight_init, MLPLayer, PositionalEncoding, VOCABULARY_SIZE, discretize_actions, ImageEncoder
 
 
 class Encoder(nn.Module):
@@ -22,7 +22,8 @@ class Encoder(nn.Module):
         # NOTE: Could also consider encoding 3D object dimensions, location and rotation_y as initial state information
 
         # Initial image frame is embedding and used as "map context information"
-        self.image_encoder = ImageEncoder(cfg)
+        if self.cfg.map_embedding:
+            self.image_encoder = ImageEncoder(cfg)
 
         transformer_encoder_layer = nn.TransformerEncoderLayer(d_model=hidden_dim, 
                                                                nhead=self.cfg.num_heads,
