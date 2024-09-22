@@ -320,6 +320,7 @@ class NuScenesDataset(KittiAbstract):
                 fig.tight_layout()
                 fig.savefig(fig_path,  bbox_inches='tight', pad_inches=0)
                 plt.clf()
+                plt.close()
             
             img = Image.open(fig_path).convert('RGB')
             bbox_im = self.transform(img)

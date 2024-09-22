@@ -1,7 +1,7 @@
 import torch
 import torch.nn as nn
 
-from ctrlv.bbox_prediction.utils import weight_init, MLPLayer, PositionalEncoding, VOCABULARY_SIZE, discretize_actions, ImageEncoder
+from ctrlv.bbox_prediction.utils import weight_init, MLPLayer, PositionalEncoding, discretize_actions, ImageEncoder
 
 
 class Encoder(nn.Module):
@@ -12,7 +12,7 @@ class Encoder(nn.Module):
         self.cfg = cfg
         hidden_dim = self.cfg.hidden_dim
 
-        self.embed_action = nn.Embedding(int(VOCABULARY_SIZE), hidden_dim)
+        self.embed_action = nn.Embedding(int(self.cfg.vocabulary_size), hidden_dim)
         self.embed_action_combine = nn.Linear(hidden_dim * 2, hidden_dim)
 
         self.embed_state = MLPLayer(self.cfg.state_dim + 1, hidden_dim, hidden_dim)
@@ -45,7 +45,6 @@ class Encoder(nn.Module):
         return action_embeddings
 
     def forward(self, data_dict, init_images=None):
-
         num_agents = self.cfg.max_num_agents
         
         actions = data_dict['actions'][:, :, 0:num_agents].to(self.device)      # [batch_size, num_timesteps, num_agents, 2, 2]
@@ -54,6 +53,13 @@ class Encoder(nn.Module):
         existence = data_dict['existence'][:, :, 0:num_agents].to(self.device)  # [batch_size, num_timesteps, num_agents]
 
         batch_size, num_timesteps, num_agents, _ = bboxes.shape
+
+        if self.cfg.last_frame_traj:
+            # Replace last bbox frame with "trajectory frame" (ie: center of bbox), which we will represent as [x, y, 0, 0] for dims to match
+            x1, y1, x2, y2 = bboxes[:, -1, :, 0], bboxes[:, -1, :, 1], bboxes[:, -1, :, 2], bboxes[:, -1, :, 3]
+            bboxes[:, -1, :, 0] = (torch.max(x1, x2) + torch.min(x1, x2)) / 2
+            bboxes[:, -1, :, 1] = (torch.max(y1, y2) + torch.min(y1, y2)) / 2
+            bboxes[:, -1, :, 2:] = 0.0
 
         # Concatenate the bbox with the agent type for the input "state"
         states = torch.cat([bboxes, type_ids], dim=-1)
@@ -67,9 +73,9 @@ class Encoder(nn.Module):
 
         # Embed actions
         # TODO: Currently not correctly handling existence of actions when agent comes into or out of existence.
-        #       Since we are reporting actions into and out from null states [0, 0, 0, 0] (ie: ([x1, y1, x1, x2] -> [0, 0, 0, 0])), 
+        #       Since we are reporting actions into and out from null states [0, 0, 0, 0] (ie: ([x1, y1, x1, y2] -> [0, 0, 0, 0])), 
         #       these should be masked because they are not real actions.
-        actions_tokenized = discretize_actions(actions).to(torch.int)  # TODO: Could replace first action (which is constant) by SOS token explicitely (but perhaps it is already playing this role)
+        actions_tokenized = discretize_actions(actions, dir_disc=self.cfg.dir_disc, norm_disc=self.cfg.norm_disc).to(torch.int)  # TODO: Could replace first action (which is constant) by SOS token explicitely (but perhaps it is already playing this role)
         action_embeddings = self.embed_tokenized_actions(actions_tokenized)
 
         # Combine embeddings
@@ -78,7 +84,11 @@ class Encoder(nn.Module):
         if self.cfg.only_keep_initial_agents:
             # Mask out agents completely if they were not present in first timestep
             initial_existence = existence[:, 0]
-            existence = torch.logical_and(existence, initial_existence.unsqueeze(1))  
+
+            if self.cfg.always_predict_initial_agents:
+                existence = initial_existence.unsqueeze(1).repeat(1, num_timesteps, 1, 1)
+            else:
+                existence = torch.logical_and(existence, initial_existence.unsqueeze(1))  
 
         # Zero out embeddings at timesteps where the agent does not have visible bbox
         state_embeddings *= existence  
@@ -119,15 +129,15 @@ class Encoder(nn.Module):
             input_state_embeddings = torch.cat([initial_state_embeddings, state_embeddings[:, -1:]], dim=1)
         
         conditioning_existence = conditioning_existence.reshape(batch_size, -1, 1)
-        src_key_padding_mask = torch.zeros_like(conditioning_existence.squeeze(-1), dtype=torch.float)
-        src_key_padding_mask[conditioning_existence.squeeze(-1) == False] = float('-inf')
+        src_key_padding_mask = torch.zeros_like(conditioning_existence.squeeze(-1), dtype=torch.bool)
+        src_key_padding_mask[conditioning_existence.squeeze(-1) == False] = True  # 'True' values are the ones that get masked out
 
         input_state_embeddings = input_state_embeddings.reshape(batch_size, -1, self.cfg.hidden_dim)
         if self.cfg.map_embedding:
-            # TODO: Encode map information with VAE, then combine with input_state_embeddings (and update src_key_padding_mask)
+            # Encode map information with VAE, then combine with input_state_embeddings (and update src_key_padding_mask)
             init_image_encodings = self.image_encoder(init_images, image_size=(self.cfg.train_H, self.cfg.train_W))
             input_embeddings = torch.cat([input_state_embeddings, init_image_encodings], dim=1)
-            valid_mask = torch.ones([init_image_encodings.shape[0], init_image_encodings.shape[1]], device=input_embeddings.device) * float('-inf')
+            valid_mask = torch.zeros([init_image_encodings.shape[0], init_image_encodings.shape[1]], device=input_embeddings.device).bool() # No masking for init_image
             src_key_padding_mask = torch.cat([src_key_padding_mask, valid_mask], dim=1)
         else:
             input_embeddings = input_state_embeddings
@@ -136,8 +146,8 @@ class Encoder(nn.Module):
         encoder_embeddings[:, :conditioning_existence.shape[1]] *= conditioning_existence
 
         existence_mask = existence.reshape(batch_size, num_timesteps * num_agents)
-        tgt_key_padding_mask = torch.zeros_like(existence_mask, dtype=torch.float)
-        tgt_key_padding_mask[existence_mask == False] = float('-inf')
+        tgt_key_padding_mask = torch.zeros_like(existence_mask, dtype=torch.bool)
+        tgt_key_padding_mask[existence_mask == False] = True
 
         if torch.isnan(encoder_embeddings).any().item():
             print("Nan values in embeddings")

@@ -21,12 +21,12 @@ def main(cfg):
 
     # Create save directory for wandb stuff
     # save_dir = f'/home/wandb/{cfg.run_name}'
-    save_dir = f'/home/mila/a/anthony.gosselin/wandb/diffuser/{cfg.run_name}'
+    save_dir = f'/home/mila/a/anthony.gosselin/scratch/wandb/diffuser/{cfg.run_name}'
     if not os.path.exists(save_dir):
         os.makedirs(save_dir, exist_ok=True)
 
     # Used to save model periodically
-    model_checkpoint = ModelCheckpoint(monitor='val_loss', save_top_k=cfg.save_top_k_checkpoints or 7, save_last=True, mode='min', dirpath=save_dir)
+    model_checkpoint = ModelCheckpoint(monitor='val_loss', save_top_k=cfg.save_top_k_checkpoints or 7, save_last=True, mode='min', dirpath=save_dir, every_n_train_steps=500)
 
     # Used to log LR during training for debugging
     lr_monitor = LearningRateMonitor(logging_interval='step')
@@ -56,7 +56,6 @@ def main(cfg):
                          devices=cfg.num_devices,
                          callbacks=[model_summary, model_checkpoint, lr_monitor],
                          max_steps=cfg.max_steps,
-                         max_epochs=50,
                          check_val_every_n_epoch=cfg.val_freq,
                          precision=cfg.precision,
                          limit_train_batches=cfg.train_data_fraction, 

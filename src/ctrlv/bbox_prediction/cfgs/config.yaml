@@ -18,15 +18,18 @@ weight_decay: 1e-4
 data_root: /network/scratch/x/xuolga/Datasets  # /network/scratch/x/xuolga/Datasets /network/scratch/a/anthony.gosselin/Datasets
 dataset: kitti  # [kitti, vkitti, bdd100k]
 dataloader_workers: 2
-save_top_k_checkpoints: 1
+save_top_k_checkpoints: 7
 dataset_non_overlapping: False
+smooth_gt_leaving_frame: False
 
 # Conditioning
 condition_last_frame: True # False
 initial_frames_condition_num: 3 # 1
 only_keep_initial_agents: True # False
+always_predict_initial_agents: False  # This means we assume initial agents will always exist and keep predicting their position (even if they move out of frame)
 use_state_embeddings: True
 map_embedding: True
+last_frame_traj: False
 
 # Transformer model config
 state_dim: 4  # {x1, y1, x2, y2}
@@ -35,6 +38,9 @@ dim_feedforward: 1024
 num_heads: 8
 num_decoder_layers: 4
 num_encoder_layers: 2
+dir_disc: 24  # Discretization resolution
+norm_disc: 16 # Discretization resolution
+vocabulary_size: 384 # This value will be updated automatically according to the two above (dir_disc * norm_disc)
 
 num_timesteps: 25  # AKA "clip_length" (number of frames per video)
 max_num_agents: 15  # To be changed according to MAX_BOXES_PER_DATA (ctrlv/datasets/__init__.py)
@@ -48,3 +54,5 @@ model_path: /home/mila/a/anthony.gosselin/wandb/diffuser/config21_2/last.ckpt
 disable_image_load: False
 load_bbox_image: False
 num_eval_samples: 1
+teacher_force_eval: False
+eval_videos_every: -1

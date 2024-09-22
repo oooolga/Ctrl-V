@@ -2,7 +2,7 @@ import torch
 import torch.nn as nn
 from torch.nn import Transformer
 
-from ctrlv.bbox_prediction.utils import VOCABULARY_SIZE, weight_init, MLPLayer
+from ctrlv.bbox_prediction.utils import weight_init, MLPLayer
 
 
 class Decoder(nn.Module):
@@ -22,7 +22,7 @@ class Decoder(nn.Module):
 
         # MLP to predict the next bbox state (2 actions for two corners)
         # TODO: Try two heads (one for each action)
-        self.predict_actions = MLPLayer(hidden_dim, hidden_dim, VOCABULARY_SIZE * 2)
+        self.predict_actions = MLPLayer(hidden_dim, hidden_dim, self.cfg.vocabulary_size * 2)
 
         self.causal_mask = self.get_causal_mask()
 
@@ -84,6 +84,7 @@ class Decoder(nn.Module):
             input_embeddings = action_embeddings
         else:
             state_embeddings = encoder_out['state_embeddings']
+            # print(state_embeddings[0, :, 1, :5])
             state_embeddings = state_embeddings.reshape(valid_batch_size, num_timesteps * num_agents, self.cfg.hidden_dim)
             state_embeddings = self.embedding_layer_norm(state_embeddings) # NOTE: Might not be necessary?
             input_embeddings = state_embeddings
@@ -93,11 +94,13 @@ class Decoder(nn.Module):
                                                tgt_mask=self.causal_mask.to(input_embeddings.device),
                                                tgt_key_padding_mask=tgt_key_padding_mask, 
                                                memory_key_padding_mask=src_key_padding_mask)
-
+        # print("dec_out", decoder_out.reshape(valid_batch_size, num_timesteps, num_agents, -1)[0, :, 1, :10])
         action_preds = self.predict_actions(decoder_out)
 
         # [valid_batch_size, num_timesteps, num_agents, 2, VOCABULARY_SIZE]
-        action_preds = action_preds.reshape(valid_batch_size, num_timesteps, num_agents, 2, VOCABULARY_SIZE) 
+        action_preds = action_preds.reshape(valid_batch_size, num_timesteps, num_agents, 2, self.cfg.vocabulary_size) 
+
+        # print("action preds:", action_preds[0, :, 1, :, :10])
 
         if torch.isnan(action_preds).any().item():
             print("Nan values in preds")

@@ -13,26 +13,27 @@ NORM_DISCRETIZATION = 16 #24
 MAX_NORM = 0.1  # NOTE: Determined approximately by looking at data, may be other more reasonable values
 MIN_NORM = 0.0
 
-VOCABULARY_SIZE = DIR_DISCRETIZATON * NORM_DISCRETIZATION
-
-
-def undiscretize_actions(actions):
+def undiscretize_actions(actions, dir_disc=DIR_DISCRETIZATON, norm_disc=NORM_DISCRETIZATION):
     """
     input: actions [batch_size, num_timesteps, num_agents, 2]
 
     output: actions [batch_size, num_timesteps, num_agents, 2, 2]
     """
+
+    dir_disc = DIR_DISCRETIZATON if dir_disc is None else dir_disc
+    norm_disc = NORM_DISCRETIZATION if norm_disc is None else norm_disc
+
     # Initialize the array for the continuous actions
     actions_shape = (actions.shape[0], actions.shape[1], actions.shape[2], 2, 2)
     continuous_actions = torch.zeros(actions_shape, device=actions.device)
     
     # Separate the combined actions back into their discretized components
-    continuous_actions[:, :, :, :, 0] = actions // NORM_DISCRETIZATION
-    continuous_actions[:, :, :, :, 1] = actions % NORM_DISCRETIZATION
+    continuous_actions[:, :, :, :, 0] = actions // norm_disc
+    continuous_actions[:, :, :, :, 1] = actions % norm_disc
     
     # Reverse the discretization
-    continuous_actions[:, :, :, :, 0] /= (DIR_DISCRETIZATON - 1)
-    continuous_actions[:, :, :, :, 1] /= (NORM_DISCRETIZATION - 1)
+    continuous_actions[:, :, :, :, 0] /= (dir_disc - 1)
+    continuous_actions[:, :, :, :, 1] /= (norm_disc - 1)
     
     # Denormalize to get back the original continuous values
     continuous_actions[:, :, :, :, 0] = (continuous_actions[:, :, :, :, 0] * (MAX_DIR - MIN_DIR)) + MIN_DIR
@@ -41,10 +42,13 @@ def undiscretize_actions(actions):
     return continuous_actions
 
 
-def discretize_actions(actions):
+def discretize_actions(actions, dir_disc=DIR_DISCRETIZATON, norm_disc=NORM_DISCRETIZATION):
     """
     actions: [batch_size, num_timesteps, num_agents, 2, 2]
     """
+
+    dir_disc = DIR_DISCRETIZATON if dir_disc is None else dir_disc
+    norm_disc = NORM_DISCRETIZATION if norm_disc is None else norm_disc
 
     actions_out = torch.zeros_like(actions)
 
@@ -53,11 +57,11 @@ def discretize_actions(actions):
     actions_out[:, :, :, :, 1] = ((torch.clip(actions[:, :, :, :, 1], min=MIN_NORM, max=MAX_NORM) - MIN_NORM) / (MAX_NORM - MIN_NORM))
     
     # discretize the actions
-    actions_out[:, :, :, :, 0] = torch.round(actions_out[:, :, :, :, 0] * (DIR_DISCRETIZATON - 1))
-    actions_out[:, :, :, :, 1] = torch.round(actions_out[:, :, :, :, 1] * (NORM_DISCRETIZATION - 1))
+    actions_out[:, :, :, :, 0] = torch.round(actions_out[:, :, :, :, 0] * (dir_disc - 1))
+    actions_out[:, :, :, :, 1] = torch.round(actions_out[:, :, :, :, 1] * (norm_disc - 1))
 
     # combine into a single categorical value
-    actions_out = actions_out[:, :, :, :, 0] * NORM_DISCRETIZATION + actions_out[:, :, :, :, 1]
+    actions_out = actions_out[:, :, :, :, 0] * norm_disc + actions_out[:, :, :, :, 1]
 
     return actions_out
 
@@ -197,6 +201,10 @@ def normalize_track_ids(track_ids):
     for batch in range(batch_size):
         unique_ids = track_ids[batch].unique()
         unique_ids = unique_ids[unique_ids != -1]
+
+        # There are no more than max_num_agents per timestep, but we also need to enforce to more than max_num_agents unique agents
+        if len(unique_ids) > max_num_agents:
+            unique_ids = unique_ids[:max_num_agents]
         
         # Create a mapping from original ids to new indices
         id_to_new_index = {old_id.item(): new_index for new_index, old_id in enumerate(unique_ids, start=0)}
@@ -204,13 +212,44 @@ def normalize_track_ids(track_ids):
         for t in range(timesteps):
             for agent in range(max_num_agents):
                 old_id = track_ids[batch, t, agent].item()
-                if old_id != -1:
+                if old_id != -1 and id_to_new_index.get(old_id) is not None:
                     new_ids[batch, t, agent] = id_to_new_index[old_id]
     
     return new_ids
 
 
-def process_data(object_data, out_frame_size=(512, 320), bbox_frame_size=(1382, 512)):
+def smooth_gt_leaving_frame(actions, bboxes):
+    """
+    When a bbox leaves the frame, it tends to disappear very suddenly. 
+    This function handles detecting when this happens and repeats the last 
+    action until the bbox goes out of frame.
+    """
+
+    batch_size, timesteps, num_agents, _ = bboxes.shape 
+    device = bboxes.device
+
+    # Identify null bboxes (shape: [batch, timesteps, num_agents])
+    null_bboxes_mask = (bboxes == 0).all(dim=-1)  # True where bbox is [0, 0, 0, 0]
+
+    # Create a cumulative sum over the time dimension to identify where to copy previous actions
+    cumsum_mask = torch.cumsum(null_bboxes_mask, dim=1)
+
+    # Create an index tensor for advanced indexing
+    timestep_indices = torch.arange(timesteps, device=device).unsqueeze(0).unsqueeze(2)  # shape: [1, timesteps, 1]
+
+    # Mask the indices to select the last valid action
+    prev_timestep_indices = torch.clamp(timestep_indices - cumsum_mask, min=0)
+
+    # Gather the correct actions based on the computed indices
+    batch_indices = torch.arange(batch_size, device=device).unsqueeze(1).unsqueeze(2)  # shape: [batch_size, 1, 1]
+    agent_indices = torch.arange(num_agents, device=device).unsqueeze(0).unsqueeze(0)  # shape: [1, 1, num_agents]
+
+    smoothed_actions = actions[batch_indices, prev_timestep_indices, agent_indices]
+
+    return smoothed_actions
+
+
+def process_data(object_data, out_frame_size=(512, 320), bbox_frame_size=(1382, 512), smooth_gt=False):
     # NOTE: This is currently for data from kitti
 
     # TODO: Potentially only consider bboxes above a certain confidence threshold from data
@@ -231,6 +270,9 @@ def process_data(object_data, out_frame_size=(512, 320), bbox_frame_size=(1382, 
     
     # Convert bbox sequence to actions (action1: top left corner, action2: bottom right corner)
     actions = bbox_seq_to_actions(bboxes, bbox_frame_size)
+
+    if smooth_gt:
+        actions = smooth_gt_leaving_frame(actions, bboxes)
 
     return {
         "actions": actions,

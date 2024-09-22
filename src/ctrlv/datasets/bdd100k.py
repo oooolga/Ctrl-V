@@ -78,6 +78,7 @@ class BDD100KDataset(KittiAbstract):
                                      train_H=train_H, train_W=train_W,
                                      use_preplotted_bbox=use_preplotted_bbox)
         
+        self.MAX_BOXES_PER_DATA = 30
         self._location = 'train' if self.train else 'val'
         self.version = 'bdd100k'
         self.use_segmentation = use_segmentation
@@ -188,6 +189,7 @@ class BDD100KDataset(KittiAbstract):
             label = json.load(f)
             frame_i = int(frame_id[-11:-4])-1
             assert frame_id == label[frame_i]['name']
+            all_ids = [int(obj['id']) for obj in label[frame_i-1]['labels']]
             for obj in label[frame_i-1]['labels']:
                 if obj['category'] not in BDD100KDataset.CLASS_IDS_LOOKUP:
                     continue
@@ -206,6 +208,7 @@ class BDD100KDataset(KittiAbstract):
                 })
                 bbox_count += 1
                 if bbox_count >= self.MAX_BOXES_PER_DATA:
+                    # print("Exceeded max bboxes", self.MAX_BOXES_PER_DATA)
                     break
         return target
 

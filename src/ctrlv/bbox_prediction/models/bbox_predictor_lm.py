@@ -6,7 +6,7 @@ from pytorch_lightning.utilities import grad_norm
 from PIL import Image
 
 from ctrlv.bbox_prediction.modules import Encoder, Decoder
-from ctrlv.bbox_prediction.utils import create_lambda_lr, process_data, VOCABULARY_SIZE
+from ctrlv.bbox_prediction.utils import create_lambda_lr, process_data
 
 torch.set_printoptions(sci_mode=False)
 
@@ -21,16 +21,19 @@ class BboxPredictorLM(pl.LightningModule):
         self.cfg = cfg
         self.frame_size = (self.cfg.train_W, self.cfg.train_H)
         self.gt_frame_size = (1242, 375) # NOTE: Change for datasets other than Kitti
+        self.cfg.vocabulary_size = self.cfg.dir_disc * self.cfg.norm_disc
 
         self.encoder = Encoder(self.cfg)
         self.decoder = Decoder(self.cfg)
 
         
-    def forward_predict(self, data_dict, init_images=None, encoder_out=None):
+    def forward_predict(self, data_dict, init_images=None, encoder_out=None, debug_dict=None):
         # Performing autoregressive rollout: only compute encoder_out once
 
         if encoder_out is None:
-            encoder_out = self.encoder(data_dict, init_images)
+            encoder_out = self.encoder(data_dict, init_images, debug_dict=debug_dict)
+            
+        if encoder_out is None: return None, None
 
         decoder_out = self.decoder(encoder_out)
 
@@ -38,7 +41,7 @@ class BboxPredictorLM(pl.LightningModule):
 
 
     def forward(self, agent_data, init_images=None):
-        data_dict = process_data(agent_data, out_frame_size=self.frame_size, bbox_frame_size=self.gt_frame_size)
+        data_dict = process_data(agent_data, out_frame_size=self.frame_size, bbox_frame_size=self.gt_frame_size, smooth_gt=self.cfg.smooth_gt_leaving_frame)
 
         encoder_out = self.encoder(data_dict, init_images)
         if encoder_out is None: return None, None
@@ -67,7 +70,7 @@ class BboxPredictorLM(pl.LightningModule):
         existence_mask = existence_mask[:, 1:].reshape(-1, 1)
 
         # [batch_size * (num_timesteps - 1) * num_agents, VOCABULARY_SIZE, num_actions]
-        action_preds = action_preds.reshape(batch_size * (num_timesteps - 1) * num_agents, 2, VOCABULARY_SIZE).permute(0, 2, 1)
+        action_preds = action_preds.reshape(batch_size * (num_timesteps - 1) * num_agents, 2, self.cfg.vocabulary_size).permute(0, 2, 1)
 
         # [batch_size * (num_timesteps - 1) * num_agents, 2]
         action_targets = action_targets.reshape(batch_size * (num_timesteps - 1) * num_agents, 2).long()
