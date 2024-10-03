@@ -48,7 +48,8 @@ In the training and evaluation script, set the `DATASET_PATH` to the root of the
 Datasets/
 ├── bdd100k
 ├── kitti
-└── vkitti_2.0.3
+├── vkitti_2.0.3
+└── nuscenes
 ```
 
 # Preprocessing
@@ -110,12 +111,13 @@ The generated videos are also uploaded to the W&B dashboard. You can find a loca
 
 ## Evaluations
 ### FVD, LPIPS, SSIM and PSNR
+(See `src/ctrlv/metrics/fvd.py`)
 TODO
 
 ### YOLOv8 Detector and mAP Scores
 To compute the mAP and AP scores, run the following command
 ```
-DATASET_NAME="..." #kitti/vkitti/bdd100k
+DATASET_NAME="..." #kitti/vkitti/bdd100k/nuscenes
 ABSOLUTE_PATH_TO_WANDB_DIR="/..."
 RUN_ID="..."
 

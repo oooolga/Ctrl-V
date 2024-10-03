@@ -333,8 +333,8 @@ if __name__ == '__main__':
     ]
 
     for vid_dir in vid_dirs:
-        print("Results for:", folder, "START -----------------")
+        print("Results for:", vid_dir, "START -----------------")
         evaluate_vids(vid_dir, SAMPLES, DOWNSAMPLE, NUM_FRAMES)
-        print("Results for:", folder, "END   -----------------")
+        print("Results for:", vid_dir, "END   -----------------")
     
     # import pdb; pdb.set_trace()
