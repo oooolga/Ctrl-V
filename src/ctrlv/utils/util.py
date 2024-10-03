@@ -64,7 +64,7 @@ def get_dataloader(dset_root, dset_name, if_train, batch_size, num_workers, data
         from ctrlv.datasets import NuScenesDataset
         dset = NuScenesDataset(root=dset_root, train=if_train, data_type=data_type, clip_length=clip_length, if_return_bbox_im=if_return_bbox_im,
                                train_H=train_H, train_W=train_W, use_preplotted_bbox=True, if_3d=True,
-                               bbox_dir='/network/scratch/x/xuolga/Datasets/nuscenes/preprocess_bbox_frames', non_overlapping_clips=non_overlapping_clips)
+                               bbox_dir=os.path.join(dset_root, 'nuscenes', 'preprocess_bbox_frames'), non_overlapping_clips=non_overlapping_clips)
     else:
         raise NotImplementedError("Dataset not implemented")
 
@@ -125,26 +125,21 @@ def encode_video_image(pixel_values, feature_extractor, weight_dtype, image_enco
     return image_embeddings
 
 
-def get_model_attr(model, attribute, *args, **kwargs):
+def get_model_attr(model, attribute):
     """
     Get an attribute or call a method of the model.
     
     Parameters:
     - model: The model instance (potentially wrapped in DDP or DP).
     - attribute: The name of the attribute or method to access or call.
-    - args: Positional arguments to pass if calling a method.
-    - kwargs: Keyword arguments to pass if calling a method.
     
     Returns:
-    - The attribute value, or the result of the method call.
+    - The attribute value
     """
     if hasattr(model, 'module'):
         model = model.module
 
     attr = getattr(model, attribute)
-    
-    if callable(attr):
-        return attr(*args, **kwargs)
     
     return attr
 
@@ -295,9 +290,12 @@ def get_n_training_samples(data_loader, n_samples, show_progress=False):
         
     return samples
 
-def eval_samples_generator(data_loader):
+def eval_samples_generator(data_loader, start_index=0):
     assert data_loader.batch_size == 1
     for i, batch in enumerate(data_loader):
+        if i < start_index:
+            print("Skipping:", i)
+            continue
         sample = get_first_training_sample(batch, data_loader.dataset)
         yield sample
 

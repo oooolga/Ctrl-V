@@ -29,6 +29,7 @@ import tempfile
 import urllib
 import urllib.request
 import uuid
+from tqdm import tqdm
 
 from distutils.util import strtobool
 from typing import Any, List, Tuple, Union, Dict
@@ -183,7 +184,7 @@ class FVD:
         fid = np.real(m + np.trace(sigma_gen + sigma_real - s * 2))
         return fid
 
-def evaluate_vids(vid_dir):
+def evaluate_vids(vid_dir, samples=200, downsample=False, num_frames=25):
     
     f_gt_vid = []
     f_gen_vid = []
@@ -192,6 +193,8 @@ def evaluate_vids(vid_dir):
             f_gen_vid.append(fname)
         if fname.startswith('gt_videos'):
             f_gt_vid.append(fname)
+    
+    print(f"Number of generated videos: {len(f_gen_vid)}")
     f_gt_vid.sort(key=sort_name)
     f_gen_vid.sort(key=sort_name)
     assert(len(f_gt_vid) == len(f_gen_vid))
@@ -201,27 +204,26 @@ def evaluate_vids(vid_dir):
     # import pdb; pdb.set_trace()
     # all_gt = np.zeros((201,16,3,320,512))
     # all_gen = np.zeros((201,16,3,320,512))
-    all_gt = np.zeros((201,25,3,256,410))
-    all_gen = np.zeros((201,25,3,256,410))
+    all_gt = np.zeros((samples,num_frames,3,256,410))
+    all_gen = np.zeros((samples,num_frames,3,256,410))
     valid = 0
-    for idx,(fgen,fgt) in enumerate(zip(f_gen_vid, f_gt_vid)):
-        if valid == 201:
+    for idx,(fgen,fgt) in tqdm(enumerate(zip(f_gen_vid, f_gt_vid))):
+        if valid == samples:
             break
-        print(idx)
-        assert (sort_name(fgen) == sort_name(fgt))
-        
         with Image.open(os.path.join(vid_dir,fgt)) as im:
-            gt_vid = load_frames(im,size=(410,256))
+            gt_vid = load_frames(im,size=(410,256)) if not downsample else load_frames_downsample(im, size=(410, 256), num_frames=num_frames)
         with Image.open(os.path.join(vid_dir,fgen)) as im:
-            gen_vid = load_frames(im,size=(410,256))
-        if gt_vid.shape[0] < 25 or gen_vid.shape[0] < 25:
+            gen_vid = load_frames(im,size=(410,256)) if not downsample else load_frames_downsample(im, size=(410, 256), num_frames=num_frames)
+
+        if gt_vid.shape[0] < num_frames or gen_vid.shape[0] < num_frames:
+            print("Skipping, wrong size:", gt_vid.shape[0], gen_vid.shape[0])
             continue
 
         gt_vid = np.expand_dims(gt_vid,0).transpose(0,1,4,2,3)
         gen_vid = np.expand_dims(gen_vid,0).transpose(0,1,4,2,3)
 
-        all_gt[valid] = gt_vid[:,:25,::]
-        all_gen[valid] = gen_vid[:,:25,::]
+        all_gt[valid] = gt_vid[:,:num_frames,::]
+        all_gen[valid] = gen_vid[:,:num_frames,::]
         valid += 1
 
     all_gt = torch.from_numpy(all_gt).cuda().float()
@@ -251,13 +253,12 @@ def evaluate_vids(vid_dir):
     all_gen = all_gen.detach().cpu().numpy()
     all_gt = all_gt.detach().cpu().numpy()
 
-    ssim_score_vid = np.zeros(201)
-    ssim_score_image = np.zeros((201,25))
-    psnr_score_vid = np.zeros(201)
-    psnr_score_image = np.zeros((201,25))
+    ssim_score_vid = np.zeros(samples)
+    ssim_score_image = np.zeros((samples,num_frames))
+    psnr_score_vid = np.zeros(samples)
+    psnr_score_image = np.zeros((samples,num_frames))
     psnr_score_all = psnr(all_gt,all_gen)
-    for vid_idx in range(all_gen.shape[0]):
-        print(f'vid idx: {vid_idx}')
+    for vid_idx in tqdm(range(all_gen.shape[0])):
         for f_idx in range(all_gen.shape[1]):
             img_gt = all_gt[vid_idx,f_idx]
             img_gen = all_gen[vid_idx,f_idx]
@@ -283,7 +284,9 @@ def evaluate_vids(vid_dir):
     print(f'psnr_score_image: {psnr_score_image.mean()}')
     print(f'psnr_score_image_error: {psnr_score_image_error}')
     # print(f'psnr_score_all: {psnr_score_all}')
-    import pdb; pdb.set_trace()
+    # import pdb; pdb.set_trace()
+    print("Copy friendly:")
+    print(f"{fvd_score}, {lpips_score}, {ssim_score_image}, {psnr_score_image}")
 
 if __name__ == '__main__':
     # from ctrlv.utils.util import get_dataloader
@@ -300,7 +303,7 @@ if __name__ == '__main__':
     from PIL import Image, ImageSequence
     import numpy as np
 
-    vid_dir = sys.argv[1]
+    # vid_dir = sys.argv[1]
 
     def sort_name(text):
         text = text[text.find('videos_')+len('videos_'):]
@@ -308,39 +311,30 @@ if __name__ == '__main__':
         return int(num)
     
 
+    def load_frames_downsample(image: Image, mode='RGB', size=(256,256), num_frames=8):
+        odd_fix = 1 if num_frames % 2 != 0 else 0
+        return np.array([
+            np.array(frame.resize(size).convert(mode))
+            for i, frame in enumerate(ImageSequence.Iterator(image)) if (i % 2 == 0 and i // 2 <= (num_frames + odd_fix))
+        ])
+
     def load_frames(image: Image, mode='RGB',size=(256,256)):
         return np.array([
             np.array(frame.resize(size).convert(mode))
             for frame in ImageSequence.Iterator(image)
         ])
 
-    # vid_dir = '/network/scratch/x/xuolga/Results/sd3d/bdd100k_ctrlv_240511_200727/wandb/run-20240531_023312-8s6ospag/files/media/videos/'
-    # vid_dir = '/network/scratch/x/xuolga/Results/sd3d/bdd100k_ctrlv_240511_200727/wandb/run-20240601_175458-0v85adgs/files/media/videos/'
-    # vid_dir = '/network/scratch/x/xuolga/Results/sd3d/vkitti_ctrlv_240510_150856/wandb/run-20240531_212327-sehj32yk/files/media/videos/'
-    # vid_dir = '/network/scratch/x/xuolga/Results/sd3d/kitti_ctrlv_240510_141159/wandb/run-20240601_204019-649cucdi/files/media/videos/'
-    # vid_dir = '/network/scratch/x/xuolga/Results/sd3d/vkitti_ctrlv_240510_150856/wandb/run-20240602_212229-tso8rfs4/files/media/videos/'
-    # vid_dir = '/network/scratch/x/xuolga/Results/sd3d/kitti_ctrlv_240510_141159/wandb/run-20240603_030728-5d9g8nol/files/media/videos/'
+    SAMPLES = 150 #1200
+    NUM_FRAMES = 11  # 25
+    DOWNSAMPLE = True
 
-    #kitti baseline
-    # vid_dir = '/network/scratch/x/xuolga/Results/sd3d/kitti_video_240603_012345/wandb/run-20240605_113611-nr6axueg/files/media/videos/'
+    vid_dirs = [
+        "/network/scratch/a/anthony.gosselin/Results/ctrlv/bdd100k_ctrlv_240511_200727/wandb/run-20240611_003700-xb81s7c1/files/media/videos/",
+    ]
 
-    #vkitti baseline
-    # vid_dir = '/network/scratch/x/xuolga/Results/sd3d/vkitti_video_240602_014243/wandb/run-20240606_095618-h2topzfq/files/media/videos/'
-
-    #bdd baseline
-    # vid_dir = '/network/scratch/x/xuolga/Results/sd3d/bdd100k_video_240525_163350/wandb/run-20240605_120657-rmzcct7y/files/media/videos/'
-
-    # last frame point
-    # vid_dir = '/network/scratch/x/xuolga/Results/sd3d/bdd100k_ctrlv_240511_200727/wandb/run-20240607_200141-56arymuj/files/media/videos/'
-
-    # kitti 1-to-1
-    # vid_dir = '/network/scratch/x/xuolga/Results/sd3d/kitti_ctrlv_240510_141159/wandb/run-20240611_002604-xm6jteh5/files/media/videos/'
-
-    # bdd 1-to-1
-    # vid_dir = '/network/scratch/x/xuolga/Results/sd3d/bdd100k_ctrlv_240511_200727/wandb/run-20240611_003700-xb81s7c1/files/media/videos/'
-
-
-    # for vid_dir in ['/network/scratch/x/xuolga/Results/sd3d/bdd100k_ctrlv_240511_200727/wandb/run-20240531_023312-8s6ospag/files/media/videos/','/network/scratch/x/xuolga/Results/sd3d/bdd100k_ctrlv_240511_200727/wandb/run-20240601_175458-0v85adgs/files/media/videos/','/network/scratch/x/xuolga/Results/sd3d/vkitti_ctrlv_240510_150856/wandb/run-20240531_212327-sehj32yk/files/media/videos/','/network/scratch/x/xuolga/Results/sd3d/kitti_ctrlv_240510_141159/wandb/run-20240601_204019-649cucdi/files/media/videos/']:
-    evaluate_vids(vid_dir)
+    for vid_dir in vid_dirs:
+        print("Results for:", folder, "START -----------------")
+        evaluate_vids(vid_dir, SAMPLES, DOWNSAMPLE, NUM_FRAMES)
+        print("Results for:", folder, "END   -----------------")
     
-    import pdb; pdb.set_trace()
+    # import pdb; pdb.set_trace()

@@ -85,8 +85,10 @@ def main():
             args.pretrained_model_name_or_path, subfolder="vae", revision=args.revision, variant="fp16",
         )
 
+        unet_model_path = args.unet_model_path or args.pretrained_model_name_or_path
+        variant = args.unet_model_path is None and "fp16" or None
         unet = UNetSpatioTemporalConditionModel.from_pretrained(
-            args.pretrained_model_name_or_path, subfolder="unet", variant="fp16",
+            unet_model_path, subfolder="unet", variant=variant,
             low_cpu_mem_usage=True, num_frames=args.clip_length
         )
 

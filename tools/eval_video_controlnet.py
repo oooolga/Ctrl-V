@@ -13,6 +13,7 @@ import torch
 torch.cuda.empty_cache()
 import torch.utils.checkpoint
 from diffusers.utils import is_wandb_available
+from tqdm import tqdm
 
 from accelerate import Accelerator
 from accelerate.logging import get_logger
@@ -74,7 +75,7 @@ def main():
 
         def run_inference_with_pipeline(pipeline, demo_samples):
             gt_labels = []
-            for sample_i, sample in enumerate(demo_samples):
+            for sample_i, sample in tqdm(enumerate(demo_samples)):
                 frames = pipeline(sample['image_init'] if not args.generate_bbox else sample['bbox_init'], 
                                 cond_images=sample['bbox_img'].unsqueeze(0) if not args.generate_bbox else sample['gt_clip'].unsqueeze(0),
                                 height=dataset.train_H, width=dataset.train_W, 

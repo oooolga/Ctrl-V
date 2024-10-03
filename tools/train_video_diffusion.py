@@ -509,7 +509,7 @@ def main():
 
                     # Concatenate the `original_image_embeds` with the `noisy_latents`.
                     if not args.predict_bbox:
-                        conditional_latents = get_model_attr(unet, 'encode_bbox_frame', conditional_latents, None)
+                        conditional_latents = get_model_attr(unet, 'encode_bbox_frame')(conditional_latents, None)
                     
                     concatenated_noisy_latents = torch.cat([inp_noisy_latents, conditional_latents], dim=2)
                     model_pred = unet(concatenated_noisy_latents,
@@ -547,7 +547,7 @@ def main():
                 # Checks if the accelerator has performed an optimization step behind the scenes
                 if accelerator.sync_gradients:
                     if args.use_ema:
-                        ema_unet.step(get_model_attr(unet, 'parameters'))
+                        ema_unet.step(get_model_attr(unet, 'parameters')())
                     progress_bar.update(1)
                     global_step += 1
                     log_plot = {
@@ -555,7 +555,7 @@ def main():
                                 "lr": lr_scheduler.get_last_lr()[0],
                             }
                     if args.add_bbox_frame_conditioning:
-                        log_plot["|attn_rz_weight|"] = get_model_attr(unet, 'get_attention_rz_weight')
+                        log_plot["|attn_rz_weight|"] = get_model_attr(unet, 'get_attention_rz_weight')()
                     accelerator.log(log_plot, step=global_step)
                     train_loss = 0.0
 

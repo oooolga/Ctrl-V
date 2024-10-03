@@ -5,8 +5,9 @@ import numpy as np
 import os, sys, pickle, torch
 from PIL import Image, ImageSequence
 import cv2
-from ctrlv.datasets import KittiDataset, VKittiDataset, BDD100KDataset, COCO_LABELS_LOOKUP
+from ctrlv.datasets import KittiDataset, VKittiDataset, BDD100KDataset, NuScenesDataset, COCO_LABELS_LOOKUP
 import matplotlib.pyplot as plt
+from tqdm import tqdm
 
 def get_video_loader(video_dir):
 
@@ -75,6 +76,9 @@ def write_bbox_to_file(vid_dir, dataset):
     elif dataset == 'bdd100k':
         label_lookup = BDD100KDataset.TO_COCO_LABELS
         orig_H, orig_W = 720, 1280
+    elif dataset == 'nuscenes':
+        label_lookup = NuScenesDataset.TO_COCO_LABELS # TODO: These could be redefined specifically for nuscenes (instead of through the currrent nuscenes -> kitti mapping)
+        orig_H, orig_W = 900, 1600
     classes = list(set(label_lookup.values()))
 
     pkl_path = f"/{os.path.join(*vid_dir.split('/')[:-6])}/gt_labels_ctrl_eval"
@@ -97,6 +101,10 @@ def write_bbox_to_file(vid_dir, dataset):
     gt_labels = []
 
     for f, (f_name, gt, gen) in enumerate(zip(f_names, gt_gifs, gen_gifs)):
+
+        print("Sample:", f)
+        if f >= 200:
+            break
 
         gt_bboxes = track_video(gt, classes=classes, iou=0.35, conf=0.10, save_path=plot_path if f<=50 else None, prefix=f'gt_{f}')
         gen_bboxes = track_video(gen, classes=classes, iou=0.35, conf=0.10, save_path=plot_path if f<=50 else None, prefix=f'gen_{f}')
@@ -182,7 +190,7 @@ def write_bbox_to_file(vid_dir, dataset):
             'gt_labels': gt_labels
         }, handle, protocol=pickle.HIGHEST_PROTOCOL)
 
-def get_tp_fp_tn(data, iou_thres, confidence_thres, run_gt_stats=True):
+def get_tp_fp_tn(data, iou_thres, confidence_thres, run_gt_stats=False):
     from ultralytics.utils.metrics import ConfusionMatrix, DetMetrics, box_iou
     cm = ConfusionMatrix(nc=1, conf=confidence_thres, iou_thres=iou_thres, task='detect')
     for gen, gt in zip(data['generated_detections'] if not run_gt_stats else data['gt_detections'],
@@ -215,17 +223,19 @@ def get_map(data,plot=False,dataset=None):
             line = plot_rp(rp_pairs=rp_pairs,ax=ax)
             line.set_label(f'{iou_th:.2f}')
     if plot:
-        ax.legend(loc='lower right', title="IOU cutoff", ncols=5)
+        ax.legend(loc='lower right', title="IOU cutoff", ncol=5)
         plt.savefig(f'{dataset}_map.png',bbox_inches='tight')
     return sum(all_ap)/len(all_ap), all_ap
 
 def get_ap_iou(data,iou_threshold):
     rp_pairs = []
-    for idx, conf in enumerate(np.arange(0.00, 1.01, 0.01)):
-        print(conf)
-        tp, fp, fn, recall, precision = get_tp_fp_tn(data, iou_thres=iou_threshold, confidence_thres=conf)
+    for conf in tqdm(np.arange(0.00, 1.01, 0.01)):
+        tp, fp, fn, recall, precision = get_tp_fp_tn(data, iou_thres=iou_threshold, confidence_thres=conf, run_gt_stats=False)
+
         if precision != precision:
+            print(f"Precision is nan for conf={conf}")
             continue
+        
         rp_pairs.append([recall, precision])
     ap = get_ap_from_rp(rp_pairs)
     return ap, rp_pairs

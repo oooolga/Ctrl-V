@@ -16,6 +16,13 @@ def parse_args():
         help="Path to pretrained model or model identifier from huggingface.co/models.",
     )
     parser.add_argument(
+        "--unet_model_path",
+        type=str,
+        default=None,
+        required=False,
+        help="Path to pretrained unet model. Used to override 'pretrained_model_name_or_path', and will default to this if not provided",
+    )
+    parser.add_argument(
         "--revision",
         type=str,
         default=None,
@@ -428,7 +435,7 @@ def parse_args():
         if args.dataset_name == "bdd100k":
             args.fps = 5
         elif args.dataset_name == "nuscenes":
-            args.fps = 2
+            args.fps = 7  # NOTE: Must match the fps in nuscenes dataloader (=2 is not interpolation)
         else:
             args.fps = 7
     return args

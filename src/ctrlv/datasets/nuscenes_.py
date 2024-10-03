@@ -14,6 +14,10 @@ matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 import matplotlib.patches as patches
 from typing import Tuple
+from nuscenes.utils.splits import create_splits_scenes
+from shapely.geometry import MultiPoint, box
+from typing import List, Tuple, Union
+
 
 class CVCOLORS:
     RED = (0,0,255)
@@ -125,6 +129,35 @@ def my_render_3d_style(ax, nusc, boxes_3d, camera_sensor, ego_pose, data_path=No
         
         render_box_3d_style(box_3d, ax, view=camera_intrinsic, normalize=True, outline_color=outline_color, fill_color=fill_color, show_3d_bboxes=show_3d_bboxes, show_2d_bboxes=show_2d_bboxes)
 
+
+def post_process_coords(corner_coords: List,
+                        imsize: Tuple[int, int] = (1600, 900)) -> Union[Tuple[float, float, float, float], None]:
+    """
+    Get the intersection of the convex hull of the reprojected bbox corners and the image canvas, return None if no
+    intersection.
+    :param corner_coords: Corner coordinates of reprojected bounding box.
+    :param imsize: Size of the image canvas.
+    :return: Intersection of the convex hull of the 2D box corners and the image canvas.
+    """
+    polygon_from_2d_box = MultiPoint(corner_coords).convex_hull
+    img_canvas = box(0, 0, imsize[0], imsize[1])
+
+    if polygon_from_2d_box.intersects(img_canvas):
+        img_intersection = polygon_from_2d_box.intersection(img_canvas)
+        intersection_coords = np.array([coord for coord in img_intersection.exterior.coords])
+
+        min_x = min(intersection_coords[:, 0])
+        min_y = min(intersection_coords[:, 1])
+        max_x = max(intersection_coords[:, 0])
+        max_y = max(intersection_coords[:, 1])
+
+        return min_x, min_y, max_x, max_y
+    else:
+        return None
+    
+# Singleton that holds the data so we only have to load once for training & validation
+nusc_data = None
+
 class NuScenesDataset(KittiAbstract):
 
     # Based on closest match to KITTI classes
@@ -198,7 +231,8 @@ class NuScenesDataset(KittiAbstract):
                  use_segmentation=False,
                  use_preplotted_bbox=True,
                  if_3d=False,
-                 non_overlapping_clips=False):
+                 non_overlapping_clips=False,
+                 test_split=False):
 
         super(NuScenesDataset, self).__init__(root=root, 
                                               train=train, 
@@ -216,20 +250,38 @@ class NuScenesDataset(KittiAbstract):
         
         # assert data_type == 'clip', "Only clip data type is supported for NuScenes dataset."
         self.version = 'nuscenes'
-        self.nusc = NuScenes(version='v1.0-trainval', # 'v1.0-mini'
+
+        global nusc_data
+        if nusc_data is None:
+            data_split = 'v1.0-trainval' if not test_split else 'v1.0-test' # Or: 'v1.0-mini' for testing
+            nusc_data = NuScenes(version=data_split, 
                              dataroot=os.path.join(self.root, self.version),
                              verbose=True)
+
+        self.nusc = nusc_data
+        
+        dataset_split = 'train' if train else 'val'
+        if test_split:
+            dataset_split = 'test'
+
+        split_scene_names = create_splits_scenes()[dataset_split]  # [train: 700, val: 150, test: 150]
+        split_scenes = [scene for scene in nusc_data.scene if scene['name'] in split_scene_names]
+
         self.if_3d = if_3d
         self.scene_sample_dict = defaultdict(dict)
         self.idx_sample_dict = []
         self.bbox_dir = bbox_dir
-        self.non_overlapping_clips = non_overlapping_clips
+        self.non_overlapping_clips = non_overlapping_clips or (train == False)
+
+        if not non_overlapping_clips and not train:
+            print("SETTING NON-OVERLAPPING CLIPS = True FOR VALIDATION SET")
 
         self.TRACKID_LOOKUP = {}
 
+        # Interpolating annotations to increase the frame rate (nuscenes annotation fps=2Hz, video data fps=12Hz)
         self.fps = 7 # NOTE: when setting to fps=7 with -0.05 correction term on target_period, the real fps is more like 8
         target_period = 1/self.fps - 0.05  # For fps downsampling
-        for scene_i, scene in enumerate(self.nusc.scene):
+        for scene_i, scene in enumerate(split_scenes):
             
             self.scene_sample_dict[scene['name']]['scene'] = scene_i
             self.scene_sample_dict[scene['name']]['frontcam_samples'] = []  # NOTE: Currently only using front camera data
@@ -270,7 +322,7 @@ class NuScenesDataset(KittiAbstract):
                         start_image_idx = clip_i * self.clip_length
                         self.idx_sample_dict.append(self.scene_sample_dict[scene['name']]['frontcam_samples'][start_image_idx])
                         
-        print("Number of clips:", len(self.idx_sample_dict))
+        print("Number of clips:", len(self.idx_sample_dict), f"({'train' if train else 'val'})")
         
     def __len__(self):
         return len(self.idx_sample_dict)
@@ -304,6 +356,10 @@ class NuScenesDataset(KittiAbstract):
             fig_path = os.path.join(self.bbox_dir, f'{token}.png') if self.bbox_dir is not None else 'temp.png'
 
             if self.bbox_dir is None or not os.path.exists(fig_path):
+
+                if self.bbox_dir is not None and not os.path.exists(self.bbox_dir):
+                    os.makedirs(self.bbox_dir, exist_ok=True)
+
                 bboxes = self.nusc.get_boxes(token)
 
                 sample_data = self.nusc.get('sample_data', token)
@@ -376,6 +432,7 @@ class NuScenesDataset(KittiAbstract):
         cam_front_data = self.nusc.get('sample_data', token)
         front_camera_sensor = self.nusc.get('calibrated_sensor', cam_front_data['calibrated_sensor_token'])
         camera_intrinsic = np.array(front_camera_sensor['camera_intrinsic'])
+        ego_pose = self.nusc.get('ego_pose', cam_front_data['ego_pose_token'])
 
         target = []
         for bbox_3d in self.nusc.get_boxes(token):
@@ -388,24 +445,51 @@ class NuScenesDataset(KittiAbstract):
             if instance_token not in self.TRACKID_LOOKUP:
                 self.TRACKID_LOOKUP[instance_token] = len(self.TRACKID_LOOKUP)
 
-            target.append(
-                {
-                    'frame': None,
-                    'trackID': self.TRACKID_LOOKUP[instance_token],
-                    'type': bbox_3d.name,
-                    'truncated': 0,
-                    'occluded': 0,
-                    'alpha': bbox_3d.orientation.radians,
-                    'bbox': [np.min(view_points(bbox_3d.corners(), camera_intrinsic, normalize=True)[0,:]),
-                             np.min(view_points(bbox_3d.corners(), camera_intrinsic, normalize=True)[1,:]), 
-                             np.max(view_points(bbox_3d.corners(), camera_intrinsic, normalize=True)[0,:]),
-                             np.max(view_points(bbox_3d.corners(), camera_intrinsic, normalize=True)[1,:])], # TODO: these values are incorrect
-                    'dimensions': [bbox_3d.wlh[2], bbox_3d.wlh[0], bbox_3d.wlh[1]],
-                    'location': [bbox_3d.center[0], bbox_3d.center[1], bbox_3d.center[2]],
-                    'rotation_y': bbox_3d.orientation.axis[1],
-                    'id_type': id_type,
-                }
-            )
+            target_label = {
+                'frame': None,
+                'trackID': self.TRACKID_LOOKUP[instance_token],
+                'type': bbox_3d.name,
+                'truncated': 0,
+                'occluded': 0,
+                'alpha': bbox_3d.orientation.radians,
+                'bbox': None, # Computed afterwards
+                'dimensions': [bbox_3d.wlh[2], bbox_3d.wlh[0], bbox_3d.wlh[1]],
+                'location': [bbox_3d.center[0], bbox_3d.center[1], bbox_3d.center[2]],
+                'rotation_y': bbox_3d.orientation.axis[1],
+                'id_type': id_type,
+            }
+
+            # Project 3D bboxes to 2D 
+            # (Code adapted from: https://github.com/nutonomy/nuscenes-devkit/blob/master/python-sdk/nuscenes/scripts/export_2d_annotations_as_json.py)
+            
+            # Move them to the ego-pose frame.
+            bbox_3d.translate(-np.array(ego_pose['translation']))
+            bbox_3d.rotate(Quaternion(ego_pose['rotation']).inverse)
+
+            # Move them to the calibrated sensor frame.
+            bbox_3d.translate(-np.array(front_camera_sensor['translation']))
+            bbox_3d.rotate(Quaternion(front_camera_sensor['rotation']).inverse)
+
+            # Filter out the corners that are not in front of the calibrated sensor.
+            corners_3d = bbox_3d.corners()
+            in_front = np.argwhere(corners_3d[2, :] > 0).flatten()
+            corners_3d = corners_3d[:, in_front]
+
+            # Project 3d box to 2d.
+            corner_coords = view_points(corners_3d, camera_intrinsic, True).T[:, :2].tolist()
+
+            # Keep only corners that fall within the image.
+            final_coords = post_process_coords(corner_coords)
+
+            # Skip if the convex hull of the re-projected corners does not intersect the image canvas.
+            if final_coords is None:
+                continue
+            
+            min_x, min_y, max_x, max_y = final_coords
+            target_label['bbox'] = [min_x, min_y, max_x, max_y]
+
+            target.append(target_label)
+
         return target
     
     def render_cv2(self,
