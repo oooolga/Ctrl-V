@@ -1,6 +1,6 @@
 import hydra
 
-from ctrlv.bbox_prediction.policies import BboxPredictorLMPolicy
+from ctrlv.bbox_generator_baseline.policies import BboxPredictorLMPolicy
 
 
 @hydra.main(version_base=None, config_path="/home/mila/a/anthony.gosselin/dev/Ctrl-V_dev/src/ctrlv/bbox_prediction/cfgs/", config_name="config")

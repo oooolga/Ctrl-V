@@ -4,8 +4,8 @@ import numpy as np
 from collections import defaultdict
 from typing import Union
 
-from ctrlv.bbox_prediction.models.bbox_predictor_lm import BboxPredictorLM
-from ctrlv.bbox_prediction.utils import process_data, undiscretize_actions, actions_to_bbox_seq, coords_to_bbox_seq, create_video_from_numpy_array, undiscretize_coords, bbox_seq_to_coords, discretize_coords, bbox_seq_to_actions, discretize_actions
+from ctrlv.bbox_generator_baseline.models.bbox_predictor_lm import BboxPredictorLM
+from ctrlv.bbox_generator_baseline.utils import process_data, undiscretize_actions, actions_to_bbox_seq, coords_to_bbox_seq, create_video_from_numpy_array, undiscretize_coords, bbox_seq_to_coords, discretize_coords, bbox_seq_to_actions, discretize_actions
 from ctrlv.utils import plot_3d_bbox, get_n_training_samples, get_dataloader
 from ctrlv.metrics import binary_mask_iou
 

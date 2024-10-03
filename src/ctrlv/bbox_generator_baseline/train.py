@@ -1,7 +1,7 @@
 import os 
 import hydra
-from ctrlv.bbox_prediction.models.bbox_predictor_lm import BboxPredictorLM
-from ctrlv.bbox_prediction.datamodules.datamodule import DataModule
+from ctrlv.bbox_generator_baseline.models.bbox_predictor_lm import BboxPredictorLM
+from ctrlv.bbox_generator_baseline.datamodules.datamodule import DataModule
 
 import torch
 torch.set_float32_matmul_precision('medium')

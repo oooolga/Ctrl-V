@@ -2,7 +2,7 @@ import torch
 import torch.nn as nn
 from torch.nn import Transformer
 
-from ctrlv.bbox_prediction.utils import weight_init, MLPLayer
+from ctrlv.bbox_generator_baseline.utils import weight_init, MLPLayer
 
 
 class DecoderCoords(nn.Module):

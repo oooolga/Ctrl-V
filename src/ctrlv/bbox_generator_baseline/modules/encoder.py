@@ -1,7 +1,7 @@
 import torch
 import torch.nn as nn
 
-from ctrlv.bbox_prediction.utils import weight_init, MLPLayer, PositionalEncoding, discretize_actions, ImageEncoder
+from ctrlv.bbox_generator_baseline.utils import weight_init, MLPLayer, PositionalEncoding, discretize_actions, ImageEncoder
 
 
 class Encoder(nn.Module):

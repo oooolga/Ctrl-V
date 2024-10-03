@@ -5,8 +5,8 @@ import pytorch_lightning as pl
 from pytorch_lightning.utilities import grad_norm
 from PIL import Image
 
-from ctrlv.bbox_prediction.modules import Encoder, Decoder, EncoderCoords, DecoderCoords
-from ctrlv.bbox_prediction.utils import create_lambda_lr, process_data
+from ctrlv.bbox_generator_baseline.modules import Encoder, Decoder, EncoderCoords, DecoderCoords
+from ctrlv.bbox_generator_baseline.utils import create_lambda_lr, process_data
 
 torch.set_printoptions(sci_mode=True)
 
