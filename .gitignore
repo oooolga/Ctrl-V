@@ -2,6 +2,7 @@
 outputs/
 lightning_logs/
 video_out/
+*.out
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

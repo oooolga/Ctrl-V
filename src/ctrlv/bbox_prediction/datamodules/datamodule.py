@@ -22,7 +22,10 @@ class DataModule(pl.LightningDataModule):
         pass # Data split is done when fetching dataloaders
 
     def train_dataloader(self):
-        dataset_train, dataloader_train = get_dataloader(self.cfg.data_root, self.cfg.dataset, if_train=True, batch_size=self.cfg.train_batch_size, num_workers=self.cfg.dataloader_workers, 
+        
+        if_train = not self.cfg.overfitting_test
+
+        dataset_train, dataloader_train = get_dataloader(self.cfg.data_root, self.cfg.dataset, if_train=if_train, batch_size=self.cfg.train_batch_size, num_workers=self.cfg.dataloader_workers, 
                             data_type='clip', clip_length=self.cfg.num_timesteps, use_default_collate=True, tokenizer=None, shuffle=False, if_return_bbox_im=self.cfg.load_bbox_image, non_overlapping_clips=self.cfg.dataset_non_overlapping)
         self.dataset_train = dataset_train
         self.dataloader_train = dataloader_train

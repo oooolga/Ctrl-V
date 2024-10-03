@@ -5,6 +5,10 @@ import math
 import imageio
 
 # ===================================== DISCRETIZATON =====================================
+"""
+DISPLACEMENT
+"""
+
 DIR_DISCRETIZATON = 24 #16
 MAX_DIR = 2*torch.pi
 MIN_DIR = 0
@@ -66,7 +70,7 @@ def discretize_actions(actions, dir_disc=DIR_DISCRETIZATON, norm_disc=NORM_DISCR
     return actions_out
 
 
-def actions_to_bbox_seq(actions, initial_bboxes, frame_size, discard_first_action=False):
+def actions_to_bbox_seq(actions, initial_bboxes, discard_first_action=False):
     """
     actions: [batch_size=1, num_timesteps, num_agents, 2, 2]
     initial_bboxes: [batch_size=1, num_agents, 4]
@@ -97,10 +101,10 @@ def actions_to_bbox_seq(actions, initial_bboxes, frame_size, discard_first_actio
         dy1 = norm1 * torch.sin(direction1)
         dy2 = norm2 * torch.sin(direction2)
         
-        x1p = x1 + dx1 * frame_size[0]
-        x2p = x2 + dx2 * frame_size[0]
-        y1p = y1 + dy1 * frame_size[1]
-        y2p = y2 + dy2 * frame_size[1]
+        x1p = x1 + dx1
+        x2p = x2 + dx2
+        y1p = y1 + dy1
+        y2p = y2 + dy2
 
         next_bboxes = torch.stack([x1p, y1p, x2p, y2p], dim=-1)
         bboxes[:, t] = next_bboxes
@@ -108,7 +112,7 @@ def actions_to_bbox_seq(actions, initial_bboxes, frame_size, discard_first_actio
     return bboxes
 
 
-def bbox_seq_to_actions(bboxes, frame_size):
+def bbox_seq_to_actions(bboxes):
     """
     Convert bbox sequence to actions
     bboxes: [batch_size, timesteps, num_agents, 4]
@@ -131,10 +135,10 @@ def bbox_seq_to_actions(bboxes, frame_size):
         y2p = bboxes[:, i, :, 3]
         
         # Normalizing coordinates to a frame with 1:1 aspect ratio (square)
-        dy1 = (y1p - y1) / frame_size[1]
-        dy2 = (y2p - y2) / frame_size[1]
-        dx1 = (x1p - x1) / frame_size[0]
-        dx2 = (x2p - x2) / frame_size[0]
+        dy1 = (y1p - y1)
+        dy2 = (y2p - y2)
+        dx1 = (x1p - x1)
+        dx2 = (x2p - x2)
 
         # Compute angles and normalize from [-pi, pi] to [0, 2*pi]
         direction1 = torch.remainder(torch.arctan2(dy1, dx1) + 2*torch.pi, 2*torch.pi)
@@ -152,6 +156,56 @@ def bbox_seq_to_actions(bboxes, frame_size):
         actions[:, i, :, 1] = p2_action
     
     return actions
+
+"""
+COORDINATES
+"""
+
+def undiscretize_coords(cfg, coords):
+    """
+    input: coords (tokenized) [batch_size, num_timesteps, num_agents, 4]
+
+    output: coords [batch_size, num_timesteps, num_agents, 4]
+    """
+
+    # Initialize the array for the continuous actions
+    continuous_coords = coords.clone() / (cfg.vocabulary_size - 1)
+    
+    return continuous_coords
+
+def discretize_coords(cfg, coords):
+    """
+    actions: [batch_size, num_timesteps, num_agents, 4]
+    """
+
+    coords_out = coords.clone()
+
+    # normalize & discretize
+    coords_out = torch.clip(coords_out, min=0.0, max=1.0)
+    coords_out = torch.round(coords_out * (cfg.vocabulary_size - 1)).to(torch.int)
+
+    return coords_out
+
+def coords_to_bbox_seq(coords):
+
+    bboxes = coords.clone()
+
+    return bboxes
+
+def bbox_seq_to_coords(bboxes):
+    """
+    Convert bbox sequence to coords "actions" (x1, y1, x2, y2) relative to frame size ([0, 1])
+    bboxes: [batch_size, timesteps, num_agents, 4]
+
+    coords: [batch_size, timesteps, num_agents, 4]
+    """
+
+    coords = bboxes.clone()
+
+    # TODO: Could clamp values, but having <0 or >1, maybe isn't really a problem, and would allow bboxes going out of frame
+
+    return coords
+
 
 # ===================================== DISCRETIZATON END =====================================
 
@@ -249,7 +303,7 @@ def smooth_gt_leaving_frame(actions, bboxes):
     return smoothed_actions
 
 
-def process_data(object_data, out_frame_size=(512, 320), bbox_frame_size=(1382, 512), smooth_gt=False):
+def process_data(cfg, object_data, bbox_frame_size=(1382, 512)):
     # NOTE: This is currently for data from kitti
 
     # TODO: Potentially only consider bboxes above a certain confidence threshold from data
@@ -263,19 +317,24 @@ def process_data(object_data, out_frame_size=(512, 320), bbox_frame_size=(1382, 
     existence = bboxes[:, :, :, -1:].bool()  # Flag indicating if the agent's bbox exists at the current timestep (if it is in frame)
 
     # Rescale bbox coordinates
-    bboxes[:, :, :, 0] *= out_frame_size[0] / bbox_frame_size[0]
-    bboxes[:, :, :, 2] *= out_frame_size[0] / bbox_frame_size[0]
-    bboxes[:, :, :, 1] *= out_frame_size[1] / bbox_frame_size[1]
-    bboxes[:, :, :, 3] *= out_frame_size[1] / bbox_frame_size[1]
+    bboxes[:, :, :, 0] /= bbox_frame_size[0]
+    bboxes[:, :, :, 2] /= bbox_frame_size[0]
+    bboxes[:, :, :, 1] /= bbox_frame_size[1]
+    bboxes[:, :, :, 3] /= bbox_frame_size[1]
     
-    # Convert bbox sequence to actions (action1: top left corner, action2: bottom right corner)
-    actions = bbox_seq_to_actions(bboxes, bbox_frame_size)
+    actions, coords = None, None
+    if not cfg.pred_coords:
+        # Convert bbox sequence to actions (action1: top left corner, action2: bottom right corner)
+        actions = bbox_seq_to_actions(bboxes)
 
-    if smooth_gt:
-        actions = smooth_gt_leaving_frame(actions, bboxes)
+        if cfg.smooth_gt_leaving_frame:
+            actions = smooth_gt_leaving_frame(actions, bboxes)
+    else:
+        coords = bbox_seq_to_coords(bboxes)
 
     return {
         "actions": actions,
+        "coords": coords,
         "bboxes": bboxes,
         "type_ids": type_ids,
         "existence": existence
