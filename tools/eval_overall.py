@@ -56,7 +56,7 @@ def main():
 
         dataset, data_loader = get_dataloader(args.data_root, args.dataset_name, if_train=False, clip_length=args.clip_length,
                                                     batch_size=args.train_batch_size, num_workers=args.dataloader_num_workers, 
-                                                    data_type='clip', use_default_collate=True, tokenizer=None, shuffle=True,
+                                                    data_type='clip', use_default_collate=True, tokenizer=None, shuffle=False,
                                                     if_return_bbox_im=True, train_H=args.train_H, train_W=args.train_W,
                                                     use_segmentation=args.use_segmentation, 
                                                     use_preplotted_bbox=not args.if_last_frame_trajectory,
