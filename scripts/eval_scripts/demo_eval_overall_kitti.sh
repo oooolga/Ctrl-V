@@ -26,4 +26,4 @@ accelerate launch --config_file config/a100l.yaml tools/eval_overall.py \
     --resume_from_checkpoint latest \
     --num_inference_steps 50 \
     --pretrained_bbox_model $BBOX_MODEL_DIR \
-    --num_cond_bbox_frames 1
+    --num_cond_bbox_frames 3  # NOTE: (3 for 3-to-1 variant, 1 for 1-to-1 variant)
