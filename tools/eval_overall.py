@@ -54,9 +54,9 @@ def main():
 
         generator = torch.Generator(device=accelerator.device).manual_seed(args.seed) if args.seed else None
 
-        dataset, data_loader = get_dataloader(args.data_root, args.dataset_name, if_train=True, clip_length=args.clip_length,
+        dataset, data_loader = get_dataloader(args.data_root, args.dataset_name, if_train=False, clip_length=args.clip_length,
                                                     batch_size=args.train_batch_size, num_workers=args.dataloader_num_workers, 
-                                                    data_type='clip', use_default_collate=True, tokenizer=None, shuffle=True,
+                                                    data_type='clip', use_default_collate=True, tokenizer=None, shuffle=False,
                                                     if_return_bbox_im=True, train_H=args.train_H, train_W=args.train_W,
                                                     use_segmentation=args.use_segmentation, 
                                                     use_preplotted_bbox=not args.if_last_frame_trajectory,
@@ -102,7 +102,7 @@ def main():
                             bbox_frames[frame_i] = np.zeros_like(bbox_frames[frame_i])
                 
                     bbox_frames = bbox_frames.astype(np.uint8)
-                    clip_miou, clip_ar, clip_ap = binary_mask_iou(bbox_frames, sample['bbox_img_np'][:args.clip_length])
+                    clip_miou, clip_ar, clip_ap = binary_mask_iou( sample['bbox_img_np'][:args.clip_length], bbox_frames,)
                     best_score = max(best_score, clip_miou)
                     if best_score == clip_miou:
                         best_generation_bbox = bbox_im
