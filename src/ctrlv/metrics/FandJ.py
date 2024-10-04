@@ -8,19 +8,19 @@ import numpy as np
 import math
 import cv2
 
-def binary_mask_iou(image1, image2):
-    mask1 = image1.sum(axis=1).astype(bool)
-    mask2 = image2.sum(axis=1).astype(bool)
+def binary_mask_iou(image_gt, image_pred):
+    mask_gt = image_gt.sum(axis=1).astype(bool)
+    mask_pred = image_pred.sum(axis=1).astype(bool)
 
-    mask1_area = mask1.sum()
-    mask2_area = mask2.sum()
-    intersection = np.count_nonzero( np.logical_and( mask1, mask2) )
-    union = mask1_area + mask2_area - intersection
+    mask_gt_area = mask_gt.sum()
+    mask_pred_area = mask_pred.sum()
+    intersection = np.count_nonzero( np.logical_and( mask_gt, mask_pred) )
+    union = mask_gt_area + mask_pred_area - intersection
     iou = intersection/union if union > 0 else 1
 
-    recall = intersection / mask1_area if mask1_area > 0 else 1
-    precision = intersection / mask2_area if mask2_area > 0 else 1
-    return iou, recall, precision
+    recall = intersection / mask_gt_area if mask_gt_area > 0 else 1
+    precision = intersection / mask_pred_area if mask_pred_area > 0 else 1
+    return iou, precision, recall
 
 class DAVISEvaluation(object):
 

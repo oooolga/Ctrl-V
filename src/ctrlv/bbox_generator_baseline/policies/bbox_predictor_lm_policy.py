@@ -339,8 +339,8 @@ class BboxPredictorLMPolicy:
 
             # Compute metrics
             gt_bbox_vid_np, gt_bbox_img_stack_np = self.get_bbox_seq_vid(gt_data_dict, gt_bboxes=False)
-            maskIOU, maskP, maskR = binary_mask_iou(bbox_img_stack_np, gt_bbox_img_stack_np)
-            first_last_IOU, first_last_P, first_last_R = binary_mask_iou(bbox_img_stack_np[[0, -1], :, :, :], gt_bbox_img_stack_np[[0, -1], :, :, :])
+            maskIOU, maskP, maskR = binary_mask_iou(gt_bbox_img_stack_np, bbox_img_stack_np)
+            first_last_IOU, first_last_P, first_last_R = binary_mask_iou(gt_bbox_img_stack_np[[0, -1], :, :, :], bbox_img_stack_np[[0, -1], :, :, :])
 
             avg_maskIOU.append(maskIOU)
             avg_maskP.append(maskP)

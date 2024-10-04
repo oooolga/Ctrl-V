@@ -47,6 +47,16 @@ else:
     import wandb
 logger = get_logger(__name__, log_level="INFO")
 
+
+
+def get_latest_checkpoint(checkpoint_dir):
+    dirs = os.listdir(checkpoint_dir)
+    dirs = [d for d in dirs if d.startswith("checkpoint")]
+    dirs = sorted(dirs, key=lambda x: int(x.split("-")[1]))
+    path = dirs[-1] if len(dirs) > 0 else None
+
+    return path
+
 def main():
     args = parse_args()
     logging_dir = Path(args.output_dir, args.logging_dir)
@@ -84,9 +94,15 @@ def main():
         vae = AutoencoderKLTemporalDecoder.from_pretrained(
             args.pretrained_model_name_or_path, subfolder="vae", revision=args.revision, variant="fp16",
         )
+        
+        if args.finetuned_svd_path is not None:
+            latest_checkpoint = get_latest_checkpoint(args.finetuned_svd_path)
+            unet_model_path = os.path.join(args.finetuned_svd_path, latest_checkpoint)
+            variant = None
+        else:
+            unet_model_path = args.pretrained_model_name_or_path
+            variant = "fp16"
 
-        unet_model_path = args.unet_model_path or args.pretrained_model_name_or_path
-        variant = args.unet_model_path is None and "fp16" or None
         unet = UNetSpatioTemporalConditionModel.from_pretrained(
             unet_model_path, subfolder="unet", variant=variant,
             low_cpu_mem_usage=True, num_frames=args.clip_length
@@ -253,10 +269,7 @@ def main():
                 path = os.path.basename(args.resume_from_checkpoint)
             else:
                 # Get the most recent checkpoint
-                dirs = os.listdir(args.output_dir)
-                dirs = [d for d in dirs if d.startswith("checkpoint")]
-                dirs = sorted(dirs, key=lambda x: int(x.split("-")[1]))
-                path = dirs[-1] if len(dirs) > 0 else None
+                path = get_latest_checkpoint(args.output_dir)
             
             if path is None:
                 accelerator.print(

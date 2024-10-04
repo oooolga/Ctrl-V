@@ -16,7 +16,7 @@ def parse_args():
         help="Path to pretrained model or model identifier from huggingface.co/models.",
     )
     parser.add_argument(
-        "--unet_model_path",
+        "--finetuned_svd_path",
         type=str,
         default=None,
         required=False,
