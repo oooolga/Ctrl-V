@@ -75,10 +75,16 @@ To train on different sets, simply modify `DATASET` variable's value to `kitti`,
 # Train a Box2Video Model
 A demo script is available at [demo_train_video_box2video.sh](./scripts/train_scripts/demo_train_video_box2video.sh).
 
-To run [demo_train_video_box2video.sh](./scripts/train_scripts/demo_train_video_box2video.sh), set the `$DATASET_PATH` and `$OUT_DIR` to your desired path, and then execute 
+Prior to training the Box2Video model, results may be improved by finetuning the SVD model to the current dataset. To do this run [demo_train_video_diffusion.sh](./scripts/train_scripts/demo_train_video_diffusion.sh), set the `$DATASET_PATH` and `$OUT_DIR` to your desired path, and then execute
+```
+bash ./scripts/train_scripts/demo_train_video_diffusion.sh
+```
+
+To run [demo_train_video_box2video.sh](./scripts/train_scripts/demo_train_video_box2video.sh), set the `$DATASET_PATH` and `$OUT_DIR` to your desired path, and set $FINETEUNED_SVD_PATH to the $OUT_DIR from the previous finetuning step and then execute 
 ```
 bash ./scripts/train_scripts/demo_train_video_box2video.sh
 ```
+(Note: if you do not wish to start from a finetuned model, simply remove the `--finetuned_svd_path` argument in [demo_train_video_box2video.sh](./scripts/train_scripts/demo_train_video_box2video.sh) and this will load the (non-finetuned) model from `--pretrained_model_name_or_path`.
 
 To resume training, set the `$NAME` variable to the name of the stopped experiment (e.g., `bdd100k_ctrlv_240616_000000`). Ensure that you include `--resume_from_checkpoint latest` and that all the hyperparameter settings match those of the stopped experiment. After this setup, you can resume training by re-executing the training command.
 
