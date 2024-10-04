@@ -108,7 +108,7 @@ def main():
                         best_generation_bbox = bbox_im
                         best_ap = clip_ap
                         best_ar = clip_ar
-                        first_and_last_miou, first_and_last_ap, first_and_last_ar = binary_mask_iou(sample['bbox_img_np'][[0,args.clip_length-1],::],bbox_frames[[0,-1],::])
+                        first_and_last_miou, first_and_last_ar, first_and_last_ap = binary_mask_iou(sample['bbox_img_np'][[0,args.clip_length-1],::], bbox_frames[[0,-1],::])
                         best_generation_np = bbox_frames
                     del bbox_im, bbox_frames, tmp, clip_miou, clip_ar, clip_ap
                 
