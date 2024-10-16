@@ -1,4 +1,4 @@
-# Copyright (c) CAIRI AI Lab. All rights reserved
+# Copyright (c) Ge Ya Luo. All rights reserved
 
 import warnings
 from packaging.version import parse
