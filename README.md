@@ -142,11 +142,13 @@ Our library is built on the work of many brilliant researchers and developers. W
 # Citation
 
 ```bibtex
-@misc{luo2024ctrlv,
-      title={Ctrl-V: Higher Fidelity Video Generation with Bounding-Box Controlled Object Motion}, 
-      author={Ge Ya Luo and Zhi Hao Luo and Anthony Gosselin and Alexia Jolicoeur-Martineau and Christopher Pal},
-      year={2024},
-      eprint={2406.05630},
-      archivePrefix={arXiv}
+@article{
+luo2025ctrlv,
+title={Ctrl-V: Higher Fidelity Autonomous Vehicle Video Generation with Bounding-Box Controlled Object Motion},
+author={Ge Ya Luo and ZhiHao Luo and Anthony Gosselin and Alexia Jolicoeur-Martineau and Christopher Pal},
+journal={Transactions on Machine Learning Research},
+issn={2835-8856},
+year={2025},
+url={https://openreview.net/forum?id=BMGikHBjlx},
 }
 ```
